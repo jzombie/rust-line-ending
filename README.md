@@ -149,6 +149,12 @@ assert_eq!(cr_restored, "first\rsecond\rthird");
 assert_eq!(lf_restored, "first\nsecond\nthird");
 ```
 
+## License
+
+Licensed under **MIT**. See [`LICENSE`][license-page] for details.
+
+
+
 
 [rust-src-page]: https://www.rust-lang.org/
 [rust-logo]: https://img.shields.io/badge/Made%20with-Rust-black?&logo=Rust
