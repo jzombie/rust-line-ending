@@ -23,7 +23,7 @@ cargo add line-ending
 
 ## Usage
 
-### Split into lines
+### Split into Lines
 
 Split a string into lines using the detected line ending.
 
@@ -41,7 +41,7 @@ assert_eq!(cr_lines, expected);
 assert_eq!(lf_lines, expected);
 ```
 
-### Apply to lines
+### Apply to Lines
 
 Join a vector of strings with the specified line ending.
 
@@ -68,7 +68,7 @@ assert_eq!(
 );
 ```
 
-### Convert to type
+### Convert to Type
 
 Convert a string from any line ending type to a specified one.
 
@@ -91,7 +91,7 @@ assert_eq!(
 );
 ```
 
-### From string slice
+### From String Slice
 
 Detect the predominant line ending style used in the input string.
 
@@ -148,6 +148,24 @@ assert_eq!(crlf_restored, "first\r\nsecond\r\nthird");
 assert_eq!(cr_restored, "first\rsecond\rthird");
 assert_eq!(lf_restored, "first\nsecond\nthird");
 ```
+
+### Handling Escaped Line Endings
+
+Rust automatically treats escaped line endings (e.g., `\\n`, `\\r\\n`, `\\r`) as 
+literal text and does not interpret them as actual line breaks. This means that 
+functions like `split()` and `replace()` operate **only on actual newlines**, 
+ensuring efficient and predictable behavior **without additional processing overhead**.
+
+For example:
+
+```rust
+use line_ending::LineEnding;
+
+let text = "First\\nSecond\nThird";
+let result = LineEnding::split(text);
+
+assert_eq!(result, vec!["First\\nSecond", "Third"]); // Escaped \\n remains intact
+
 
 ## License
 
