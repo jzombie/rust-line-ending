@@ -25,9 +25,13 @@ impl From<&str> for LineEnding {
     /// assert_eq!(LineEnding::from(sample), LineEnding::CRLF);
     /// ```
     fn from(s: &str) -> Self {
-        let crlf_score = Self::CRLF.split_as(s).len();
-        let cr_score = Self::CR.split_as(s).len();
-        let lf_score = Self::LF.split_as(s).len();
+        let crlf_score = Self::CRLF.split_with(s).len().saturating_sub(1);
+
+        // Ensure CR is not double-counted when it's part of CRLF
+        let cr_score = Self::CR.split_with(s).len().saturating_sub(1) - crlf_score;
+
+        // Ensure LF is not double-counted when it's part of CRLF
+        let lf_score = Self::LF.split_with(s).len().saturating_sub(1) - crlf_score;
 
         // Return the most frequent line ending
         if crlf_score >= cr_score && crlf_score >= lf_score {
@@ -105,8 +109,29 @@ impl LineEnding {
         s.split(line_ending).map(String::from).collect()
     }
 
-    // TODO: Document
-    pub fn split_as(&self, s: &str) -> Vec<String> {
+    /// Splits a string into lines using the specified line ending.
+    ///
+    /// In most cases, `split` is the preferred method as it automatically detects the
+    /// line ending to use.
+    ///
+    /// Unlike [`LineEnding::split`], which detects the line ending type from the input,
+    /// this method explicitly uses the line ending type of `self` to split the string.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::LineEnding;
+    ///
+    /// let text = "line1\r\nline2\r\nline3";
+    /// let lines = LineEnding::CRLF.split_with(text);
+    /// assert_eq!(lines, vec!["line1", "line2", "line3"]);
+    ///
+    /// let text = "line1\nline2\nline3";
+    /// let lines = LineEnding::LF.split_with(text);
+    /// assert_eq!(lines, vec!["line1", "line2", "line3"]);
+    /// ```
+
+    pub fn split_with(&self, s: &str) -> Vec<String> {
         s.split(self.as_str()).map(String::from).collect()
     }
 
@@ -268,25 +293,20 @@ mod tests {
         );
     }
 
-    // TODO: Update to handle multi-line scoring
-    // #[test]
-    // fn ignores_escaped_line_endings_in_detection() {
-    //     // Escaped line endings should NOT be detected as actual newlines
-    //     // assert_eq!(LineEnding::from("This is a test\\nstring"), LineEnding::LF);
-    //     // assert_eq!(
-    //     //     LineEnding::from("This is a test\\r\\nstring"),
-    //     //     LineEnding::LF
-    //     // );
-    //     // assert_eq!(LineEnding::from("This is a test\\rstring"), LineEnding::LF);
+    #[test]
+    fn handles_mixed_line_endings() {
+        // Mixed with some CRLF and CR, but LF is dominant
+        let mostly_lf = "line1\nline2\r\nline3\rline4\nline5\nline6\n";
+        assert_eq!(LineEnding::from(mostly_lf), LineEnding::LF);
 
-    //     // // Actual line endings should be detected correctly
-    //     // assert_eq!(LineEnding::from("This is a test\nstring"), LineEnding::LF);
-    //     // assert_eq!(
-    //     //     LineEnding::from("This is a test\r\nstring"),
-    //     //     LineEnding::CRLF
-    //     // );
-    //     // assert_eq!(LineEnding::from("This is a test\rstring"), LineEnding::CR);
-    // }
+        // Mixed with some LF and CR, but CRLF is dominant
+        let mostly_crlf = "line1\r\nline2\r\nline3\nline4\rline5\r\nline6\r\n";
+        assert_eq!(LineEnding::from(mostly_crlf), LineEnding::CRLF);
+
+        // Mixed with some LF and CRLF, but CR is dominant
+        let mostly_cr = "line1\rline2\r\nline3\rline4\nline5\rline6\r";
+        assert_eq!(LineEnding::from(mostly_cr), LineEnding::CR);
+    }
 
     #[test]
     fn ignores_escaped_line_endings_in_split() {
