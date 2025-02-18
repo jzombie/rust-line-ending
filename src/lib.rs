@@ -254,4 +254,92 @@ mod tests {
             "first line\nsecond line\nthird line\nfourth line\n"
         );
     }
+
+    #[test]
+    fn ignores_escaped_line_endings_in_detection() {
+        // Escaped line endings should NOT be detected as actual newlines
+        assert_eq!(LineEnding::from("This is a test\\nstring"), LineEnding::LF);
+        assert_eq!(
+            LineEnding::from("This is a test\\r\\nstring"),
+            LineEnding::LF
+        );
+        assert_eq!(LineEnding::from("This is a test\\rstring"), LineEnding::LF);
+
+        // Actual line endings should be detected correctly
+        assert_eq!(LineEnding::from("This is a test\nstring"), LineEnding::LF);
+        assert_eq!(
+            LineEnding::from("This is a test\r\nstring"),
+            LineEnding::CRLF
+        );
+        assert_eq!(LineEnding::from("This is a test\rstring"), LineEnding::CR);
+    }
+
+    #[test]
+    fn ignores_escaped_line_endings_in_split() {
+        let input_lf = "First\\nSecond\\nThird";
+        let input_crlf = "First\\r\\nSecond\\r\\nThird";
+        let input_cr = "First\\rSecond\\rThird";
+
+        // Expected output: The input should NOT be split since these are escaped sequences
+        assert_eq!(LineEnding::split(input_lf), vec!["First\\nSecond\\nThird"]);
+        assert_eq!(
+            LineEnding::split(input_crlf),
+            vec!["First\\r\\nSecond\\r\\nThird"]
+        );
+        assert_eq!(LineEnding::split(input_cr), vec!["First\\rSecond\\rThird"]);
+    }
+
+    #[test]
+    fn split_does_not_split_on_escaped_line_endings() {
+        let input_lf = "First\\nSecond\\nThird";
+        let input_crlf = "First\\r\\nSecond\\r\\nThird";
+        let input_cr = "First\\rSecond\\rThird";
+
+        // All inputs should remain as a single, unsplit string
+        assert_eq!(LineEnding::split(input_lf), vec!["First\\nSecond\\nThird"]);
+        assert_eq!(
+            LineEnding::split(input_crlf),
+            vec!["First\\r\\nSecond\\r\\nThird"]
+        );
+        assert_eq!(LineEnding::split(input_cr), vec!["First\\rSecond\\rThird"]);
+    }
+
+    #[test]
+    fn split_correctly_splits_on_actual_line_endings() {
+        let input_lf = "First\nSecond\nThird";
+        let input_crlf = "First\r\nSecond\r\nThird";
+        let input_cr = "First\rSecond\rThird";
+
+        // Each input should split correctly based on its actual line endings
+        assert_eq!(
+            LineEnding::split(input_lf),
+            vec!["First", "Second", "Third"]
+        );
+        assert_eq!(
+            LineEnding::split(input_crlf),
+            vec!["First", "Second", "Third"]
+        );
+        assert_eq!(
+            LineEnding::split(input_cr),
+            vec!["First", "Second", "Third"]
+        );
+    }
+
+    #[test]
+    fn split_detects_mixed_escaped_and_actual_line_endings() {
+        // LF test case (escaped `\\n` should not trigger a split, actual `\n` should)
+        let input_lf = "First\\nSecond\nThird";
+        assert_eq!(LineEnding::split(input_lf), vec!["First\\nSecond", "Third"]);
+
+        // CRLF test case (escaped `\\r\\n` should be ignored, actual `\r\n` should split)
+        let input_crlf = "First\\r\\nSecond\r\nThird";
+        assert_eq!(
+            LineEnding::split(input_crlf),
+            vec!["First\\r\\nSecond", "Third"]
+        );
+
+        // CR test case (escaped `\\r` should be ignored, actual `\r` should split)
+        let input_cr = "First\\rSecond\rThird";
+        assert_eq!(LineEnding::split(input_cr), vec!["First\\rSecond", "Third"]);
+    }
 }
