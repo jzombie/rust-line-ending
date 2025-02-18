@@ -41,7 +41,7 @@ impl LineEnding {
     }
 
     /// Applies the line endiing to the given lines.
-    pub fn restore_from_lines(&self, lines: Vec<String>) -> String {
+    pub fn apply_to_lines(&self, lines: Vec<String>) -> String {
         lines.join(self.as_str())
     }
 
@@ -123,7 +123,7 @@ mod tests {
     }
 
     #[test]
-    fn restore_from_lines_applies_correct_line_endings() {
+    fn applies_correct_line_endings() {
         let lines = vec![
             "first".to_string(),
             "second".to_string(),
@@ -131,15 +131,15 @@ mod tests {
         ];
 
         assert_eq!(
-            LineEnding::CRLF.restore_from_lines(lines.clone()),
+            LineEnding::CRLF.apply_to_lines(lines.clone()),
             "first\r\nsecond\r\nthird"
         );
         assert_eq!(
-            LineEnding::CR.restore_from_lines(lines.clone()),
+            LineEnding::CR.apply_to_lines(lines.clone()),
             "first\rsecond\rthird"
         );
         assert_eq!(
-            LineEnding::LF.restore_from_lines(lines.clone()),
+            LineEnding::LF.apply_to_lines(lines.clone()),
             "first\nsecond\nthird"
         );
     }
