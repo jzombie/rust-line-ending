@@ -23,7 +23,7 @@ cargo add line-ending
 
 ## Usage
 
-### Split into Lines
+### Split
 
 Split a string into lines using the detected line ending.
 
@@ -41,8 +41,7 @@ assert_eq!(cr_lines, expected);
 assert_eq!(lf_lines, expected);
 ```
 
-### Apply to Lines
-
+### Join
 Join a vector of strings with the specified line ending.
 
 ```rust
@@ -68,9 +67,9 @@ assert_eq!(
 );
 ```
 
-### Convert to Type
+### Apply
 
-Convert a string from any line ending type to a specified one.
+Converts a string from any line ending type to a specified one.
 
 ```rust
 use line_ending::LineEnding;
@@ -78,15 +77,15 @@ use line_ending::LineEnding;
 let mixed_text = "first line\r\nsecond line\rthird line\nfourth line\n";
 
 assert_eq!(
-    LineEnding::CRLF.convert_to(mixed_text),
+    LineEnding::CRLF.apply(mixed_text),
     "first line\r\nsecond line\r\nthird line\r\nfourth line\r\n"
 );
 assert_eq!(
-    LineEnding::CR.convert_to(mixed_text),
+    LineEnding::CR.apply(mixed_text),
     "first line\rsecond line\rthird line\rfourth line\r"
 );
 assert_eq!(
-    LineEnding::LF.convert_to(mixed_text),
+    LineEnding::LF.apply(mixed_text),
     "first line\nsecond line\nthird line\nfourth line\n"
 );
 ```
