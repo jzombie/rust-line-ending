@@ -1,3 +1,6 @@
+#[cfg(doctest)]
+doc_comment::doctest!("../README.md");
+
 /// Enum representing the detected line ending style.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(clippy::upper_case_acronyms)]

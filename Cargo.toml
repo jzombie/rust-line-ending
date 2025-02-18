@@ -1,8 +1,9 @@
 [package]
-name = "rust-line-ending"
+name = "line-ending"
 version = "0.1.0-alpha"
 description = "Detect, normalize, and convert line endings across platforms. Ensures consistent handling of LF, CRLF, and CR line endings in text processing."
 edition = "2021"
 publish = false
 
 [dependencies]
+doc-comment = "0.3.3"
