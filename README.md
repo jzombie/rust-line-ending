@@ -148,7 +148,70 @@ assert_eq!(cr_restored, "first\rsecond\rthird");
 assert_eq!(lf_restored, "first\nsecond\nthird");
 ```
 
-### Handling Escaped Line Endings
+### Handling Mixed Line Endings
+
+When a string contains multiple types of line endings (`LF`, `CRLF`, and `CR`), the `LineEnding::from` method will detect the most frequent line ending type and return it as the dominant one. This ensures a consistent approach to mixed-line-ending detection.
+
+```rust
+use line_ending::LineEnding;
+
+let text = "line1\nline2\r\nline3\rline4\nline5\r\n";
+
+assert_eq!(LineEnding::from(text), LineEnding::LF); // LF is the most common
+```
+
+The detection algorithm works as follows:
+
+1. Counts occurrences of each line ending type (`LF`, `CRLF`, `CR`).
+2. Selects the most frequent one as the detected line ending.
+3. Defaults to `LF` if all are equally present or if the input is empty.
+
+#### Edge Cases & Examples
+
+##### Case 1: One Line Ending Type is Clearly Dominant
+
+```rust
+use line_ending::LineEnding;
+
+let mostly_crlf = "line1\r\nline2\r\nline3\nline4\r\nline5\r\n"; 
+assert_eq!(LineEnding::from(mostly_crlf), LineEnding::CRLF); // CRLF is the most common
+
+let mostly_cr = "line1\rline2\rline3\nline4\rline5\r"; 
+assert_eq!(LineEnding::from(mostly_cr), LineEnding::CR); // CR is the most common
+```
+
+##### Case 2: All Line Endings Appear Equally
+
+If `LF`, `CRLF`, and `CR` all appear the same number of times, the function will return CRLF since it has the highest precedence.
+
+```rust
+use line_ending::LineEnding;
+
+let equal_mixed = "line1\r\nline2\nline3\rline4\r\nline5\nline6\r"; 
+assert_eq!(LineEnding::from(equal_mixed), LineEnding::CRLF); // CRLF > CR > LF
+```
+
+##### Case 3: Single Line Containing Multiple Line Endings
+
+If a single line contains different line endings, the function still chooses the most frequent across the entire string.
+
+```rust
+use line_ending::LineEnding;
+
+let mixed_on_one_line = "line1\r\nline2\rline3\r\nline4\r\nline5\r"; 
+assert_eq!(LineEnding::from(mixed_on_one_line), LineEnding::CRLF); // CRLF appears the most overall
+```
+
+##### Case 4: Empty Input Defaults to LF
+
+```rust
+use line_ending::LineEnding;
+
+let empty_text = "";
+assert_eq!(LineEnding::from(empty_text), LineEnding::LF); // Defaults to LF
+```
+
+### Auto-Handling Escaped Line Endings
 
 Rust automatically treats escaped line endings (e.g., `\\n`, `\\r\\n`, `\\r`) as 
 literal text and does not interpret them as actual line breaks. This means that 
@@ -164,7 +227,7 @@ let text = "First\\nSecond\nThird";
 let result = LineEnding::split(text);
 
 assert_eq!(result, vec!["First\\nSecond", "Third"]); // Escaped \\n remains intact
-
+```
 
 ## License
 

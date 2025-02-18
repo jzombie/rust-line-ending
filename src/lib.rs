@@ -1,3 +1,6 @@
+#[cfg(doctest)]
+doc_comment::doctest!("../README.md");
+
 use std::collections::HashMap;
 
 /// Enum representing the detected line ending style.
@@ -37,15 +40,30 @@ impl From<&str> for LineEnding {
     /// assert_eq!(LineEnding::from(sample), LineEnding::CRLF);
     /// ```
     fn from(s: &str) -> Self {
-        // Get the scores for each line ending
         let scores = Self::score_mixed_types(s);
 
-        // Find the line ending with the highest score
-        scores
-            .into_iter()
-            .max_by_key(|&(_, score)| score)
-            .map(|(line_ending, _)| line_ending)
-            .unwrap_or(Self::LF) // Default to LF if the string is empty
+        // Retrieve scores safely
+        let crlf_score = *scores.get(&Self::CRLF).unwrap_or(&0);
+        let cr_score = *scores.get(&Self::CR).unwrap_or(&0);
+        let lf_score = *scores.get(&Self::LF).unwrap_or(&0);
+
+        // Determine the most frequent line ending with explicit priority order
+        if crlf_score > cr_score && crlf_score > lf_score {
+            Self::CRLF
+        } else if cr_score > lf_score {
+            Self::CR
+        } else if lf_score > cr_score {
+            Self::LF
+        } else {
+            // Tie-breaking: CRLF > CR > LF
+            if crlf_score > 0 {
+                Self::CRLF
+            } else if cr_score > 0 {
+                Self::CR
+            } else {
+                Self::LF
+            }
+        }
     }
 }
 
