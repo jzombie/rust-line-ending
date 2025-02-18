@@ -21,7 +21,7 @@ pub enum LineEnding {
 /// `LineEnding` key corresponds to the number of times that specific
 /// line ending appears in a given string.
 ///
-/// This is used in functions like [`LineEnding::score`] to track
+/// This is used in functions like [`LineEnding::score_mixed_types`] to track
 /// the distribution of line endings in a text.
 pub type LineEndingScores = HashMap<LineEnding, usize>;
 
