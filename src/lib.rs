@@ -58,32 +58,20 @@ mod tests {
 
     #[test]
     fn detects_platform_line_ending_correctly() {
-        use std::fs::{self, File};
-        use std::io::{Read, Write};
+        use std::fs::File;
+        use std::io::Read;
 
-        let temp_file = "line_ending_test.txt";
-        let content = r#"first line
-        second line
-        third line
-        "#;
-
-        // Write to file (OS might modify line endings)
-        let mut file = File::create(temp_file).expect("Failed to create temp file");
-        file.write_all(content.as_bytes())
-            .expect("Failed to write to file");
+        let readme_file = "README.md";
 
         // Read file contents
         let mut read_content = String::new();
-        File::open(temp_file)
-            .expect("Failed to open file")
+        File::open(readme_file)
+            .expect("Failed to open README.md")
             .read_to_string(&mut read_content)
-            .expect("Failed to read file");
+            .expect("Failed to read README.md");
 
         // Determine line ending from file contents
         let detected = LineEnding::from(read_content.as_str());
-
-        // Cleanup test file
-        fs::remove_file(temp_file).ok();
 
         // Assert expected line ending based on platform
         #[cfg(target_os = "windows")]
