@@ -176,7 +176,6 @@ impl LineEnding {
     /// let lines = LineEnding::LF.split_with(text);
     /// assert_eq!(lines, vec!["line1", "line2", "line3"]);
     /// ```
-
     pub fn split_with(&self, s: &str) -> Vec<String> {
         s.split(self.as_str()).map(String::from).collect()
     }
