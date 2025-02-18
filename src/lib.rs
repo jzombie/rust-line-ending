@@ -45,7 +45,7 @@ impl LineEnding {
     }
 
     /// Restores line endings back to their original value.
-    pub fn restore(&self, s: &str) -> String {
+    pub fn denormalize(&self, s: &str) -> String {
         s.replace("\n", self.as_str())
     }
 
@@ -102,9 +102,9 @@ mod tests {
     #[test]
     fn restore_correctly_applies_line_endings() {
         let text = "first\nsecond\nthird";
-        let crlf_restored = LineEnding::CRLF.restore(text);
-        let cr_restored = LineEnding::CR.restore(text);
-        let lf_restored = LineEnding::LF.restore(text);
+        let crlf_restored = LineEnding::CRLF.denormalize(text);
+        let cr_restored = LineEnding::CR.denormalize(text);
+        let lf_restored = LineEnding::LF.denormalize(text);
 
         assert_eq!(crlf_restored, "first\r\nsecond\r\nthird");
         assert_eq!(cr_restored, "first\rsecond\rthird");
