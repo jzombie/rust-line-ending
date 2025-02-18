@@ -1,7 +1,11 @@
 [package]
-name = "rust-line-ending"
-version = "0.1.0-alpha"
+name = "line-ending"
+version = "1.0.0"
+description = "Detect, normalize, and convert line endings across platforms. Ensures consistent handling of LF, CRLF, and CR line endings in text processing."
+authors = ["Jeremy Harris <jeremy.harris@zenosmosis.com>"]
 edition = "2021"
-publish = false
+repository = "https://github.com/jzombie/rust-line-ending"
+license = "MIT"
 
 [dependencies]
+doc-comment = "0.3.3"
