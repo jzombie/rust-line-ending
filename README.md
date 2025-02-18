@@ -23,7 +23,7 @@ cargo add line-ending
 
 ## Usage
 
-### Split
+### Split into Lines
 
 Split a string into lines using the detected line ending.
 
@@ -41,7 +41,8 @@ assert_eq!(cr_lines, expected);
 assert_eq!(lf_lines, expected);
 ```
 
-### Join
+### Join Lines into a String
+
 Join a vector of strings with the specified line ending.
 
 ```rust
@@ -67,9 +68,9 @@ assert_eq!(
 );
 ```
 
-### Apply
+### Change Line Ending Type
 
-Converts a string from any line ending type to a specified one.
+Apply a specific line ending type to an existing string.
 
 ```rust
 use line_ending::LineEnding;
@@ -90,7 +91,7 @@ assert_eq!(
 );
 ```
 
-### From String Slice
+### Auto-identify Line Ending Type
 
 Detect the predominant line ending style used in the input string.
 
