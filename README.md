@@ -30,9 +30,9 @@ Split a string into lines using the detected line ending.
 ```rust
 use line_ending::LineEnding;
 
-let crlf_lines = LineEnding::split_into_lines("first\r\nsecond\r\nthird");
-let cr_lines = LineEnding::split_into_lines("first\rsecond\rthird");
-let lf_lines = LineEnding::split_into_lines("first\nsecond\nthird");
+let crlf_lines = LineEnding::split("first\r\nsecond\r\nthird");
+let cr_lines = LineEnding::split("first\rsecond\rthird");
+let lf_lines = LineEnding::split("first\nsecond\nthird");
 
 let expected = vec!["first", "second", "third"];
 
@@ -55,15 +55,15 @@ let lines = vec![
 ];
 
 assert_eq!(
-    LineEnding::CRLF.apply_to_lines(lines.clone()),
+    LineEnding::CRLF.join(lines.clone()),
     "first\r\nsecond\r\nthird"
 );
 assert_eq!(
-    LineEnding::CR.apply_to_lines(lines.clone()),
+    LineEnding::CR.join(lines.clone()),
     "first\rsecond\rthird"
 );
 assert_eq!(
-    LineEnding::LF.apply_to_lines(lines.clone()),
+    LineEnding::LF.join(lines.clone()),
     "first\nsecond\nthird"
 );
 ```
