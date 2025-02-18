@@ -396,6 +396,25 @@ mod tests {
     }
 
     #[test]
+    fn handles_mixed_line_edge_cases() {
+        // Case 1: One Line Ending Type is Clearly Dominant
+        let mostly_crlf = "line1\r\nline2\r\nline3\nline4\r\nline5\r\n";
+        assert_eq!(LineEnding::from(mostly_crlf), LineEnding::CRLF); // CRLF is the most common
+
+        // Case 2: All Line Endings Appear Equally
+        let equal_mixed = "line1\r\nline2\nline3\rline4\r\nline5\nline6\r";
+        assert_eq!(LineEnding::from(equal_mixed), LineEnding::CRLF); // CRLF > CR > LF
+
+        // Case 3: Single Line Containing Multiple Line Endings
+        let mixed_on_one_line = "line1\r\nline2\rline3\r\nline4\r\nline5\r";
+        assert_eq!(LineEnding::from(mixed_on_one_line), LineEnding::CRLF); // CRLF appears the most overall
+
+        // Case 4: Empty Input Defaults to LF
+        let empty_text = "";
+        assert_eq!(LineEnding::from(empty_text), LineEnding::LF); // Defaults to LF
+    }
+
+    #[test]
     fn ignores_escaped_line_endings_in_split() {
         let input_lf = "First\\nSecond\\nThird";
         let input_crlf = "First\\r\\nSecond\\r\\nThird";
