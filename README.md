@@ -10,6 +10,74 @@ cargo add line-ending
 
 ## Usage
 
+### Split into lines
+
+Splits a string into a vector of strings, regardless of the line ending type.
+
+```rust
+use line_ending::LineEnding;
+
+  let crlf_lines = LineEnding::split_into_lines("first\r\nsecond\r\nthird");
+  let cr_lines = LineEnding::split_into_lines("first\rsecond\rthird");
+  let lf_lines = LineEnding::split_into_lines("first\nsecond\nthird");
+
+  let expected = vec!["first", "second", "third"];
+
+  assert_eq!(crlf_lines, expected);
+  assert_eq!(cr_lines, expected);
+  assert_eq!(lf_lines, expected);
+```
+
+### Apply to lines
+
+Joins a vector of strings with a specific line ending type.
+
+```rust
+use line_ending::LineEnding;
+
+let lines = vec![
+  "first".to_string(),
+  "second".to_string(),
+  "third".to_string(),
+];
+
+assert_eq!(
+    LineEnding::CRLF.apply_to_lines(lines.clone()),
+    "first\r\nsecond\r\nthird"
+);
+assert_eq!(
+    LineEnding::CR.apply_to_lines(lines.clone()),
+    "first\rsecond\rthird"
+);
+assert_eq!(
+    LineEnding::LF.apply_to_lines(lines.clone()),
+    "first\nsecond\nthird"
+);
+```
+
+### Convert to type
+
+Converts the given string to a specific line ending type.
+
+```rust
+use line_ending::LineEnding;
+
+let mixed_text = "first line\r\nsecond line\rthird line\nfourth line\n";
+
+assert_eq!(
+    LineEnding::CRLF.convert_to(mixed_text),
+    "first line\r\nsecond line\r\nthird line\r\nfourth line\r\n"
+);
+assert_eq!(
+    LineEnding::CR.convert_to(mixed_text),
+    "first line\rsecond line\rthird line\rfourth line\r"
+);
+assert_eq!(
+    LineEnding::LF.convert_to(mixed_text),
+    "first line\nsecond line\nthird line\nfourth line\n"
+);
+```
+
 ### Instantiate from string slice
 
 ```rust
@@ -62,64 +130,6 @@ assert_eq!(cr_restored, "first\rsecond\rthird");
 assert_eq!(lf_restored, "first\nsecond\nthird");
 ```
 
-### Split into lines
 
-```rust
-use line_ending::LineEnding;
 
-  let crlf_lines = LineEnding::split_into_lines("first\r\nsecond\r\nthird");
-  let cr_lines = LineEnding::split_into_lines("first\rsecond\rthird");
-  let lf_lines = LineEnding::split_into_lines("first\nsecond\nthird");
 
-  let expected = vec!["first", "second", "third"];
-
-  assert_eq!(crlf_lines, expected);
-  assert_eq!(cr_lines, expected);
-  assert_eq!(lf_lines, expected);
-```
-
-### Apply to lines
-
-```rust
-use line_ending::LineEnding;
-
-let lines = vec![
-  "first".to_string(),
-  "second".to_string(),
-  "third".to_string(),
-];
-
-assert_eq!(
-    LineEnding::CRLF.apply_to_lines(lines.clone()),
-    "first\r\nsecond\r\nthird"
-);
-assert_eq!(
-    LineEnding::CR.apply_to_lines(lines.clone()),
-    "first\rsecond\rthird"
-);
-assert_eq!(
-    LineEnding::LF.apply_to_lines(lines.clone()),
-    "first\nsecond\nthird"
-);
-```
-
-### Convert to another type
-
-```rust
-use line_ending::LineEnding;
-
-let mixed_text = "first line\r\nsecond line\rthird line\nfourth line\n";
-
-assert_eq!(
-    LineEnding::CRLF.convert_to(mixed_text),
-    "first line\r\nsecond line\r\nthird line\r\nfourth line\r\n"
-);
-assert_eq!(
-    LineEnding::CR.convert_to(mixed_text),
-    "first line\rsecond line\rthird line\rfourth line\r"
-);
-assert_eq!(
-    LineEnding::LF.convert_to(mixed_text),
-    "first line\nsecond line\nthird line\nfourth line\n"
-);
-```
