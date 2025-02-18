@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 /// Enum representing the detected line ending style.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum LineEnding {
     /// Line Feed (LF) - Common on Unix, Linux, and macOS (`\n`).
@@ -9,6 +11,16 @@ pub enum LineEnding {
     /// Carriage Return (CR) - Used in older Mac OS (pre-OS X) (`\r`).
     CR,
 }
+
+/// A mapping of line ending types to their respective occurrence counts.
+///
+/// This type alias represents a `HashMap<LineEnding, usize>`, where each
+/// `LineEnding` key corresponds to the number of times that specific
+/// line ending appears in a given string.
+///
+/// This is used in functions like [`LineEnding::score`] to track
+/// the distribution of line endings in a text.
+pub type LineEndingScores = HashMap<LineEnding, usize>;
 
 impl From<&str> for LineEnding {
     /// Detects the predominant line ending style used in the input string.
@@ -25,6 +37,43 @@ impl From<&str> for LineEnding {
     /// assert_eq!(LineEnding::from(sample), LineEnding::CRLF);
     /// ```
     fn from(s: &str) -> Self {
+        // Get the scores for each line ending
+        let scores = Self::score_mixed_types(s);
+
+        // Find the line ending with the highest score
+        scores
+            .into_iter()
+            .max_by_key(|&(_, score)| score)
+            .map(|(line_ending, _)| line_ending)
+            .unwrap_or(Self::LF) // Default to LF if the string is empty
+    }
+}
+
+impl LineEnding {
+    /// Counts occurrences of each line ending type in the given string.
+    ///
+    /// This function analyzes the input string and returns a `LineEndingScores`
+    /// (a `HashMap<LineEnding, usize>`) containing the number of times each
+    /// line ending appears.
+    ///
+    /// - `CRLF (\r\n)` is counted first to ensure `\r` inside `\r\n` is not
+    ///   double-counted.
+    /// - `CR (\r)` is counted separately, subtracting occurrences of `CRLF`.
+    /// - `LF (\n)` is counted separately, also subtracting occurrences of `CRLF`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::{LineEnding, LineEndingScores};
+    ///
+    /// let text = "line1\r\nline2\r\nline3\nline4\r";
+    /// let scores = LineEnding::score_mixed_types(text);
+    ///
+    /// assert_eq!(scores[&LineEnding::CRLF], 2);
+    /// assert_eq!(scores[&LineEnding::LF], 1);
+    /// assert_eq!(scores[&LineEnding::CR], 1);
+    /// ```
+    pub fn score_mixed_types(s: &str) -> LineEndingScores {
         let crlf_score = Self::CRLF.split_with(s).len().saturating_sub(1);
 
         // Ensure CR is not double-counted when it's part of CRLF
@@ -33,18 +82,15 @@ impl From<&str> for LineEnding {
         // Ensure LF is not double-counted when it's part of CRLF
         let lf_score = Self::LF.split_with(s).len().saturating_sub(1) - crlf_score;
 
-        // Return the most frequent line ending
-        if crlf_score >= cr_score && crlf_score >= lf_score {
-            Self::CRLF
-        } else if cr_score >= lf_score {
-            Self::CR
-        } else {
-            Self::LF
-        }
+        [
+            (LineEnding::CRLF, crlf_score),
+            (LineEnding::CR, cr_score),
+            (LineEnding::LF, lf_score),
+        ]
+        .into_iter()
+        .collect()
     }
-}
 
-impl LineEnding {
     /// Returns the string representation of the line ending (`\n`, `\r\n`, or `\r`).
     ///
     /// # Example
@@ -298,14 +344,44 @@ mod tests {
         // Mixed with some CRLF and CR, but LF is dominant
         let mostly_lf = "line1\nline2\r\nline3\rline4\nline5\nline6\n";
         assert_eq!(LineEnding::from(mostly_lf), LineEnding::LF);
+        assert_eq!(
+            LineEnding::score_mixed_types(mostly_lf,),
+            [
+                (LineEnding::CRLF, 1),
+                (LineEnding::CR, 1),
+                (LineEnding::LF, 4),
+            ]
+            .into_iter()
+            .collect::<LineEndingScores>()
+        );
 
         // Mixed with some LF and CR, but CRLF is dominant
         let mostly_crlf = "line1\r\nline2\r\nline3\nline4\rline5\r\nline6\r\n";
         assert_eq!(LineEnding::from(mostly_crlf), LineEnding::CRLF);
+        assert_eq!(
+            LineEnding::score_mixed_types(mostly_crlf,),
+            [
+                (LineEnding::CRLF, 4),
+                (LineEnding::CR, 1),
+                (LineEnding::LF, 1),
+            ]
+            .into_iter()
+            .collect::<LineEndingScores>()
+        );
 
         // Mixed with some LF and CRLF, but CR is dominant
         let mostly_cr = "line1\rline2\r\nline3\rline4\nline5\rline6\r";
         assert_eq!(LineEnding::from(mostly_cr), LineEnding::CR);
+        assert_eq!(
+            LineEnding::score_mixed_types(mostly_cr,),
+            [
+                (LineEnding::CRLF, 1),
+                (LineEnding::CR, 4),
+                (LineEnding::LF, 1),
+            ]
+            .into_iter()
+            .collect::<LineEndingScores>()
+        );
     }
 
     #[test]
