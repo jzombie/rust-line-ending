@@ -9,5 +9,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo fmt --all -- --check
       - run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Install cargo-deny
+        run: cargo install cargo-deny
       - run: cargo deny check
+      - run: cargo install cargo-audit
       - run: cargo audit
