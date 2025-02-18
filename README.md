@@ -12,7 +12,7 @@ cargo add line-ending
 
 ### Split into lines
 
-Splits a string into a vector of strings, regardless of the line ending type.
+Split a string into lines using the detected line ending.
 
 ```rust
 use line_ending::LineEnding;
@@ -30,7 +30,7 @@ use line_ending::LineEnding;
 
 ### Apply to lines
 
-Joins a vector of strings with a specific line ending type.
+Join a vector of strings with the specified line ending.
 
 ```rust
 use line_ending::LineEnding;
@@ -57,7 +57,7 @@ assert_eq!(
 
 ### Convert to type
 
-Converts the given string to a specific line ending type.
+Convert a string from any line ending type to a specified one.
 
 ```rust
 use line_ending::LineEnding;
@@ -78,7 +78,9 @@ assert_eq!(
 );
 ```
 
-### Instantiate from string slice
+### From string slice
+
+Detect the predominant line ending style used in the input string.
 
 ```rust
 use line_ending::LineEnding;
@@ -103,6 +105,8 @@ assert_eq!(LineEnding::from(sample), LineEnding::CR);
 
 ### Normalize
 
+Convert all line endings in a string to LF (`\n`) for consistent processing.
+
 ```rust
 use line_ending::LineEnding;
 
@@ -117,6 +121,8 @@ assert_eq!(LineEnding::normalize(lf), lf);
 
 ### Denormalize
 
+Restore line endings in a string to the specified type.
+
 ```rust
 use line_ending::LineEnding;
 
@@ -129,7 +135,3 @@ assert_eq!(crlf_restored, "first\r\nsecond\r\nthird");
 assert_eq!(cr_restored, "first\rsecond\rthird");
 assert_eq!(lf_restored, "first\nsecond\nthird");
 ```
-
-
-
-
