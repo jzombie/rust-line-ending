@@ -157,7 +157,6 @@ When a string contains multiple types of line endings (`LF`, `CRLF`, and `CR`), 
 use line_ending::LineEnding;
 
 let text = "line1\nline2\r\nline3\nline4\nline5\r\n";
-
 assert_eq!(LineEnding::from(text), LineEnding::LF); // LF is the most common
 ```
 
@@ -210,6 +209,44 @@ use line_ending::LineEnding;
 
 let empty_text = "";
 assert_eq!(LineEnding::from(empty_text), LineEnding::LF); // Defaults to LF
+```
+
+#### Additional Mixed-Type Code Examples
+
+##### Counting Mixed Types
+
+Count occurrences of each line ending type in the given string.
+
+```rust
+use line_ending::{LineEnding, LineEndingScores};
+
+let mostly_lf = "line1\nline2\r\nline3\rline4\nline5\nline6\n";
+assert_eq!(LineEnding::from(mostly_lf), LineEnding::LF);
+// The `LineEndingScores` hash map is keyed by the line ending and
+// contains their frequency count.
+assert_eq!(
+    LineEnding::score_mixed_types(mostly_lf,),
+    [
+        (LineEnding::CRLF, 1),
+        (LineEnding::CR, 1),
+        (LineEnding::LF, 4),
+    ]
+    .into_iter()
+    .collect::<LineEndingScores>()
+);
+```
+
+##### Split as a Specific Type
+
+If you want to forcefully split by a certain type.
+
+```rust
+use line_ending::{LineEnding};
+
+let mostly_lf = "line1\nline2\r\nline3\rline4\nline5\nline6\n";
+let split_crlf = LineEnding::CRLF.split_with(mostly_lf);
+
+assert_eq!(split_crlf, vec!["line1\nline2", "line3\rline4\nline5\nline6\n"]);
 ```
 
 ### Auto-Handling Escaped Line Endings
