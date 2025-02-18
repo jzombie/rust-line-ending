@@ -142,9 +142,9 @@ mod tests {
         // Read file contents
         let mut read_content = String::new();
         File::open(readme_file)
-            .expect(&format!("Failed to open {}", readme_file))
+            .unwrap_or_else(|_| panic!("Failed to open {}", readme_file))
             .read_to_string(&mut read_content)
-            .expect(&format!("Failed to read {}", readme_file));
+            .unwrap_or_else(|_| panic!("Failed to read {}", readme_file));
 
         read_content
     }
