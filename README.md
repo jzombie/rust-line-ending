@@ -155,7 +155,7 @@ When a string contains multiple types of line endings (`LF`, `CRLF`, and `CR`), 
 ```rust
 use line_ending::LineEnding;
 
-let text = "line1\nline2\r\nline3\rline4\nline5\r\n";
+let text = "line1\nline2\r\nline3\nline4\nline5\r\n";
 
 assert_eq!(LineEnding::from(text), LineEnding::LF); // LF is the most common
 ```
@@ -164,7 +164,7 @@ The detection algorithm works as follows:
 
 1. Counts occurrences of each line ending type (`LF`, `CRLF`, `CR`).
 2. Selects the most frequent one as the detected line ending.
-3. Defaults to `LF` if all are equally present or if the input is empty.
+3. Defaults to `CRLF` if all are equally present or if the input is empty.
 
 #### Edge Cases & Examples
 
@@ -182,7 +182,7 @@ assert_eq!(LineEnding::from(mostly_cr), LineEnding::CR); // CR is the most commo
 
 ##### Case 2: All Line Endings Appear Equally
 
-If `LF`, `CRLF`, and `CR` all appear the same number of times, the function will return CRLF since it has the highest precedence.
+If `LF`, `CRLF`, and `CR` all appear the same number of times, the function will return CRLF as a tie-breaker.
 
 ```rust
 use line_ending::LineEnding;
