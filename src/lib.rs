@@ -62,7 +62,10 @@ mod tests {
         use std::io::{Read, Write};
 
         let temp_file = "line_ending_test.txt";
-        let content = "first line\nsecond line\nthird line\n"; // Uses LF in Rust
+        let content = r#"first line
+        second line
+        third line
+        "#;
 
         // Write to file (OS might modify line endings)
         let mut file = File::create(temp_file).expect("Failed to create temp file");
