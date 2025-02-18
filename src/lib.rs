@@ -66,9 +66,9 @@ mod tests {
         // Read file contents
         let mut read_content = String::new();
         File::open(readme_file)
-            .expect("Failed to open README.md")
+            .expect(&format!("Failed to open {}", readme_file))
             .read_to_string(&mut read_content)
-            .expect("Failed to read README.md");
+            .expect(&format!("Failed to read {}", readme_file));
 
         // Determine line ending from file contents
         let detected = LineEnding::from(read_content.as_str());
