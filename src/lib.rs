@@ -21,15 +21,6 @@ impl From<&str> for LineEnding {
 }
 
 impl LineEnding {
-    /// Detects the line ending style used on the current platform.
-    pub fn detect_platform_line_ending() -> Self {
-        let sample = r#"
-
-        "#;
-
-        Self::from(sample)
-    }
-
     /// Returns the string representation of the line ending.
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -67,8 +58,31 @@ mod tests {
 
     #[test]
     fn detects_platform_line_ending_correctly() {
-        let detected = LineEnding::detect_platform_line_ending();
+        use std::fs::{self, File};
+        use std::io::{Read, Write};
 
+        let temp_file = "line_ending_test.txt";
+        let content = "first line\nsecond line\nthird line\n"; // Uses LF in Rust
+
+        // Write to file (OS might modify line endings)
+        let mut file = File::create(temp_file).expect("Failed to create temp file");
+        file.write_all(content.as_bytes())
+            .expect("Failed to write to file");
+
+        // Read file contents
+        let mut read_content = String::new();
+        File::open(temp_file)
+            .expect("Failed to open file")
+            .read_to_string(&mut read_content)
+            .expect("Failed to read file");
+
+        // Determine line ending from file contents
+        let detected = LineEnding::from(read_content.as_str());
+
+        // Cleanup test file
+        fs::remove_file(temp_file).ok();
+
+        // Assert expected line ending based on platform
         #[cfg(target_os = "windows")]
         assert_eq!(detected, LineEnding::CRLF, "Windows should detect CRLF");
 
