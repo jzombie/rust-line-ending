@@ -1,17 +1,26 @@
-#[cfg(doctest)]
-doc_comment::doctest!("../README.md");
-
 /// Enum representing the detected line ending style.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum LineEnding {
-    LF,   // "\n" (Unix, Linux, macOS)
-    CRLF, // "\r\n" (Windows)
-    CR,   // "\r" (old Mac OS [pre-OS X])
+    /// Line Feed (LF) - Common on Unix, Linux, and macOS (`\n`).
+    LF,
+    /// Carriage Return + Line Feed (CRLF) - Used on Windows (`\r\n`).
+    CRLF,
+    /// Carriage Return (CR) - Used in older Mac OS (pre-OS X) (`\r`).
+    CR,
 }
 
 impl From<&str> for LineEnding {
-    /// Detects the line ending style used in the input string.
+    /// Detects the predominant line ending style used in the input string.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::LineEnding;
+    ///
+    /// let sample = "first line\r\nsecond line\r\nthird line";
+    /// assert_eq!(LineEnding::from(sample), LineEnding::CRLF);
+    /// ```
     fn from(s: &str) -> Self {
         if s.contains("\r\n") {
             Self::CRLF
@@ -24,7 +33,17 @@ impl From<&str> for LineEnding {
 }
 
 impl LineEnding {
-    /// Returns the string representation of the line ending.
+    /// Returns the string representation of the line ending (`\n`, `\r\n`, or `\r`).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::LineEnding;
+    ///
+    /// assert_eq!(LineEnding::LF.as_str(), "\n");
+    /// assert_eq!(LineEnding::CRLF.as_str(), "\r\n");
+    /// assert_eq!(LineEnding::CR.as_str(), "\r");
+    /// ```
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::LF => "\n",
@@ -33,31 +52,80 @@ impl LineEnding {
         }
     }
 
-    /// Normalize to `\n` for consistent processing.
+    /// Converts all line endings in a string to LF (`\n`) for consistent processing.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::LineEnding;
+    ///
+    /// let mixed = "first\r\nsecond\rthird\n";
+    /// assert_eq!(LineEnding::normalize(mixed), "first\nsecond\nthird\n");
+    /// ```
     pub fn normalize(s: &str) -> String {
         s.replace("\r\n", "\n").replace("\r", "\n")
     }
 
-    /// Restores line endings back to their original value.
+    /// Restores line endings in a string to the specified type.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::LineEnding;
+    ///
+    /// let normalized = "first\nsecond\nthird";
+    /// assert_eq!(LineEnding::CRLF.denormalize(normalized), "first\r\nsecond\r\nthird");
+    /// assert_eq!(LineEnding::CR.denormalize(normalized), "first\rsecond\rthird");
+    /// ```
     pub fn denormalize(&self, s: &str) -> String {
         s.replace("\n", self.as_str())
     }
 
-    /// Splits a string into lines using its detected line ending.
+    /// Splits a string into lines using the detected line ending.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::LineEnding;
+    ///
+    /// let text = "line1\r\nline2\r\nline3";
+    /// let lines = LineEnding::split_into_lines(text);
+    /// assert_eq!(lines, vec!["line1", "line2", "line3"]);
+    /// ```
     pub fn split_into_lines(s: &str) -> Vec<String> {
         let line_ending = Self::from(s).as_str();
         s.split(line_ending).map(String::from).collect()
     }
 
-    /// Applies the line endiing to the given lines.
+    /// Joins a vector of strings with the specified line ending.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::LineEnding;
+    ///
+    /// let lines = vec!["line1".to_string(), "line2".to_string(), "line3".to_string()];
+    /// assert_eq!(LineEnding::CRLF.apply_to_lines(lines.clone()), "line1\r\nline2\r\nline3");
+    /// assert_eq!(LineEnding::LF.apply_to_lines(lines.clone()), "line1\nline2\nline3");
+    /// ```
     pub fn apply_to_lines(&self, lines: Vec<String>) -> String {
         lines.join(self.as_str())
     }
 
-    /// Converts a string from any line ending type to a specified line ending.
+    /// Converts a string from any line ending type to a specified one.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::LineEnding;
+    ///
+    /// let mixed_text = "first line\r\nsecond line\rthird line\n";
+    /// assert_eq!(LineEnding::CRLF.convert_to(mixed_text), "first line\r\nsecond line\r\nthird line\r\n");
+    /// assert_eq!(LineEnding::LF.convert_to(mixed_text), "first line\nsecond line\nthird line\n");
+    /// ```
     pub fn convert_to(&self, s: &str) -> String {
-        let normalized = Self::normalize(s); // Convert all line endings to LF first
-        normalized.replace("\n", self.as_str()) // Replace LF with the target line ending
+        let normalized = Self::normalize(s);
+        normalized.replace("\n", self.as_str())
     }
 }
 
