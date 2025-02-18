@@ -62,6 +62,22 @@ assert_eq!(cr_restored, "first\rsecond\rthird");
 assert_eq!(lf_restored, "first\nsecond\nthird");
 ```
 
+### Split into lines
+
+```rust
+use line_ending::LineEnding;
+
+  let crlf_lines = LineEnding::split_into_lines("first\r\nsecond\r\nthird");
+  let cr_lines = LineEnding::split_into_lines("first\rsecond\rthird");
+  let lf_lines = LineEnding::split_into_lines("first\nsecond\nthird");
+
+  let expected = vec!["first", "second", "third"];
+
+  assert_eq!(crlf_lines, expected);
+  assert_eq!(cr_lines, expected);
+  assert_eq!(lf_lines, expected);
+```
+
 ### Apply to lines
 
 ```rust

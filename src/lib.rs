@@ -43,6 +43,12 @@ impl LineEnding {
         s.replace("\n", self.as_str())
     }
 
+    /// Splits a string into lines using its detected line ending.
+    pub fn split_into_lines(s: &str) -> Vec<String> {
+        let line_ending = Self::from(s).as_str();
+        s.split(line_ending).map(String::from).collect()
+    }
+
     /// Applies the line endiing to the given lines.
     pub fn apply_to_lines(&self, lines: Vec<String>) -> String {
         lines.join(self.as_str())
@@ -59,8 +65,7 @@ impl LineEnding {
 mod tests {
     use super::*;
 
-    #[test]
-    fn detects_platform_line_ending_correctly() {
+    fn get_readme_contents() -> String {
         use std::fs::File;
         use std::io::Read;
 
@@ -73,8 +78,13 @@ mod tests {
             .read_to_string(&mut read_content)
             .expect(&format!("Failed to read {}", readme_file));
 
+        read_content
+    }
+
+    #[test]
+    fn detects_platform_line_ending_correctly() {
         // Determine line ending from file contents
-        let detected = LineEnding::from(read_content.as_str());
+        let detected = LineEnding::from(get_readme_contents().as_str());
 
         // Assert expected line ending based on platform
         #[cfg(target_os = "windows")]
@@ -111,6 +121,24 @@ mod tests {
         assert_eq!(LineEnding::normalize(crlf), lf);
         assert_eq!(LineEnding::normalize(cr), lf);
         assert_eq!(LineEnding::normalize(lf), lf);
+    }
+
+    #[test]
+    fn splits_into_lines() {
+        let readme_contents = get_readme_contents();
+        let readme_lines = LineEnding::split_into_lines(&readme_contents);
+
+        assert_eq!(readme_lines.first().unwrap(), "# Rust Line Endings");
+
+        let crlf_lines = LineEnding::split_into_lines("first\r\nsecond\r\nthird");
+        let cr_lines = LineEnding::split_into_lines("first\rsecond\rthird");
+        let lf_lines = LineEnding::split_into_lines("first\nsecond\nthird");
+
+        let expected = vec!["first", "second", "third"];
+
+        assert_eq!(crlf_lines, expected);
+        assert_eq!(cr_lines, expected);
+        assert_eq!(lf_lines, expected);
     }
 
     #[test]
