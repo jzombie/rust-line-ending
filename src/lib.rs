@@ -89,10 +89,10 @@ impl LineEnding {
     /// use line_ending::LineEnding;
     ///
     /// let text = "line1\r\nline2\r\nline3";
-    /// let lines = LineEnding::split_into_lines(text);
+    /// let lines = LineEnding::split(text);
     /// assert_eq!(lines, vec!["line1", "line2", "line3"]);
     /// ```
-    pub fn split_into_lines(s: &str) -> Vec<String> {
+    pub fn split(s: &str) -> Vec<String> {
         let line_ending = Self::from(s).as_str();
         s.split(line_ending).map(String::from).collect()
     }
@@ -105,10 +105,10 @@ impl LineEnding {
     /// use line_ending::LineEnding;
     ///
     /// let lines = vec!["line1".to_string(), "line2".to_string(), "line3".to_string()];
-    /// assert_eq!(LineEnding::CRLF.apply_to_lines(lines.clone()), "line1\r\nline2\r\nline3");
-    /// assert_eq!(LineEnding::LF.apply_to_lines(lines.clone()), "line1\nline2\nline3");
+    /// assert_eq!(LineEnding::CRLF.join(lines.clone()), "line1\r\nline2\r\nline3");
+    /// assert_eq!(LineEnding::LF.join(lines.clone()), "line1\nline2\nline3");
     /// ```
-    pub fn apply_to_lines(&self, lines: Vec<String>) -> String {
+    pub fn join(&self, lines: Vec<String>) -> String {
         lines.join(self.as_str())
     }
 
@@ -194,13 +194,13 @@ mod tests {
     #[test]
     fn splits_into_lines() {
         let readme_contents = get_readme_contents();
-        let readme_lines = LineEnding::split_into_lines(&readme_contents);
+        let readme_lines = LineEnding::split(&readme_contents);
 
         assert_eq!(readme_lines.first().unwrap(), "# Rust Line Endings");
 
-        let crlf_lines = LineEnding::split_into_lines("first\r\nsecond\r\nthird");
-        let cr_lines = LineEnding::split_into_lines("first\rsecond\rthird");
-        let lf_lines = LineEnding::split_into_lines("first\nsecond\nthird");
+        let crlf_lines = LineEnding::split("first\r\nsecond\r\nthird");
+        let cr_lines = LineEnding::split("first\rsecond\rthird");
+        let lf_lines = LineEnding::split("first\nsecond\nthird");
 
         let expected = vec!["first", "second", "third"];
 
@@ -230,17 +230,11 @@ mod tests {
         ];
 
         assert_eq!(
-            LineEnding::CRLF.apply_to_lines(lines.clone()),
+            LineEnding::CRLF.join(lines.clone()),
             "first\r\nsecond\r\nthird"
         );
-        assert_eq!(
-            LineEnding::CR.apply_to_lines(lines.clone()),
-            "first\rsecond\rthird"
-        );
-        assert_eq!(
-            LineEnding::LF.apply_to_lines(lines.clone()),
-            "first\nsecond\nthird"
-        );
+        assert_eq!(LineEnding::CR.join(lines.clone()), "first\rsecond\rthird");
+        assert_eq!(LineEnding::LF.join(lines.clone()), "first\nsecond\nthird");
     }
 
     #[test]
