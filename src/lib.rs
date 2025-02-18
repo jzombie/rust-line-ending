@@ -4,7 +4,7 @@
 pub enum LineEnding {
     LF,   // "\n" (Unix, Linux, macOS)
     CRLF, // "\r\n" (Windows)
-    CR,   // "\r" (old macOS)
+    CR,   // "\r" (old Mac OS [pre-OS X])
 }
 
 impl From<&str> for LineEnding {
@@ -52,6 +52,12 @@ impl LineEnding {
     /// Applies the line endiing to the given lines.
     pub fn restore_from_lines(&self, lines: Vec<String>) -> String {
         lines.join(self.as_str())
+    }
+
+    /// Converts a string from any line ending type to a specified line ending.
+    pub fn convert_to(&self, s: &str) -> String {
+        let normalized = Self::normalize(s); // Convert all line endings to LF first
+        normalized.replace("\n", self.as_str()) // Replace LF with the target line ending
     }
 }
 
@@ -130,6 +136,24 @@ mod tests {
         assert_eq!(
             LineEnding::LF.restore_from_lines(lines.clone()),
             "first\nsecond\nthird"
+        );
+    }
+
+    #[test]
+    fn convert_to_correctly_applies_line_endings() {
+        let mixed_text = "first line\r\nsecond line\rthird line\nfourth line\n";
+
+        assert_eq!(
+            LineEnding::CRLF.convert_to(mixed_text),
+            "first line\r\nsecond line\r\nthird line\r\nfourth line\r\n"
+        );
+        assert_eq!(
+            LineEnding::CR.convert_to(mixed_text),
+            "first line\rsecond line\rthird line\rfourth line\r"
+        );
+        assert_eq!(
+            LineEnding::LF.convert_to(mixed_text),
+            "first line\nsecond line\nthird line\nfourth line\n"
         );
     }
 }
