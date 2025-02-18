@@ -23,9 +23,9 @@ cargo add line-ending
 
 ## Usage
 
-### Split into Lines
+### Split into Multiple Strings
 
-Split a string into lines using the detected line ending.
+Split a string into a vector of strings using the auto-detected line ending parsed from the string.
 
 ```rust
 use line_ending::LineEnding;
@@ -41,9 +41,9 @@ assert_eq!(cr_lines, expected);
 assert_eq!(lf_lines, expected);
 ```
 
-### Join Lines into a String
+### Join Multiple Strings into a Single String
 
-Join a vector of strings with the specified line ending.
+Join a vector of strings using the specified line ending.
 
 ```rust
 use line_ending::LineEnding;

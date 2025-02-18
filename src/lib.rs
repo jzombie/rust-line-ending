@@ -151,7 +151,8 @@ impl LineEnding {
         s.replace("\n", self.as_str())
     }
 
-    /// Splits a string into lines using the detected line ending.
+    /// Splits a string into a vector of strings using the auto-detected line ending
+    /// parsed from the string.
     ///
     /// # Example
     ///
@@ -192,7 +193,7 @@ impl LineEnding {
         s.split(self.as_str()).map(String::from).collect()
     }
 
-    /// Joins a vector of strings with the specified line ending.
+    /// Joins a vector of strings using the specified line ending.
     ///
     /// # Example
     ///
@@ -207,7 +208,7 @@ impl LineEnding {
         lines.join(self.as_str())
     }
 
-    /// Converts a string from any line ending type to a specified one.
+    /// Applies a specific line ending type to an existing string.
     ///
     /// # Example
     ///
