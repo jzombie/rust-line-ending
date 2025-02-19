@@ -261,6 +261,11 @@ let text = "First\\nSecond\nThird";
 let result = LineEnding::split(text);
 
 assert_eq!(result, vec!["First\\nSecond", "Third"]); // Escaped \\n remains intact
+
+let actual_newline_text = "First\nSecond\nThird";
+let result_actual = LineEnding::split(actual_newline_text);
+
+assert_eq!(result_actual, vec!["First", "Second", "Third"]); // Actual \n splits
 ```
 
 ## License
