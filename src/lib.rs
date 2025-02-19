@@ -1,5 +1,10 @@
+#[cfg(doctest)]
+doc_comment::doctest!("../README.md");
+
+use std::collections::HashMap;
+
 /// Enum representing the detected line ending style.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum LineEnding {
     /// Line Feed (LF) - Common on Unix, Linux, and macOS (`\n`).
@@ -10,8 +15,21 @@ pub enum LineEnding {
     CR,
 }
 
+/// A mapping of line ending types to their respective occurrence counts.
+///
+/// This type alias represents a `HashMap<LineEnding, usize>`, where each
+/// `LineEnding` key corresponds to the number of times that specific
+/// line ending appears in a given string.
+///
+/// This is used in functions like [`LineEnding::score_mixed_types`] to track
+/// the distribution of line endings in a text.
+pub type LineEndingScores = HashMap<LineEnding, usize>;
+
 impl From<&str> for LineEnding {
     /// Detects the predominant line ending style used in the input string.
+    ///
+    /// Note: This assumes that the input string is not of varying types, in
+    /// which case there is really
     ///
     /// # Example
     ///
@@ -22,9 +40,20 @@ impl From<&str> for LineEnding {
     /// assert_eq!(LineEnding::from(sample), LineEnding::CRLF);
     /// ```
     fn from(s: &str) -> Self {
-        if s.contains("\r\n") {
+        let scores = Self::score_mixed_types(s);
+
+        let crlf_score = *scores.get(&Self::CRLF).unwrap_or(&0);
+        let cr_score = *scores.get(&Self::CR).unwrap_or(&0);
+        let lf_score = *scores.get(&Self::LF).unwrap_or(&0);
+
+        // Select the highest count
+        let max_score = crlf_score.max(cr_score).max(lf_score);
+
+        if max_score == 0 || crlf_score == max_score {
+            // `CRLF` is chosen as a tie-breaker because it represents both `CR`
+            // and `LF`, making it the most inclusive option
             Self::CRLF
-        } else if s.contains("\r") {
+        } else if cr_score == max_score {
             Self::CR
         } else {
             Self::LF
@@ -33,6 +62,47 @@ impl From<&str> for LineEnding {
 }
 
 impl LineEnding {
+    /// Counts occurrences of each line ending type in the given string.
+    ///
+    /// This function analyzes the input string and returns a `LineEndingScores`
+    /// (a `HashMap<LineEnding, usize>`) containing the number of times each
+    /// line ending appears.
+    ///
+    /// - `CRLF (\r\n)` is counted first to ensure `\r` inside `\r\n` is not
+    ///   double-counted.
+    /// - `CR (\r)` is counted separately, subtracting occurrences of `CRLF`.
+    /// - `LF (\n)` is counted separately, also subtracting occurrences of `CRLF`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::{LineEnding, LineEndingScores};
+    ///
+    /// let text = "line1\r\nline2\r\nline3\nline4\r";
+    /// let scores = LineEnding::score_mixed_types(text);
+    ///
+    /// assert_eq!(scores[&LineEnding::CRLF], 2);
+    /// assert_eq!(scores[&LineEnding::LF], 1);
+    /// assert_eq!(scores[&LineEnding::CR], 1);
+    /// ```
+    pub fn score_mixed_types(s: &str) -> LineEndingScores {
+        let crlf_score = Self::CRLF.split_with(s).len().saturating_sub(1);
+
+        // Ensure CR is not double-counted when it's part of CRLF
+        let cr_score = Self::CR.split_with(s).len().saturating_sub(1) - crlf_score;
+
+        // Ensure LF is not double-counted when it's part of CRLF
+        let lf_score = Self::LF.split_with(s).len().saturating_sub(1) - crlf_score;
+
+        [
+            (LineEnding::CRLF, crlf_score),
+            (LineEnding::CR, cr_score),
+            (LineEnding::LF, lf_score),
+        ]
+        .into_iter()
+        .collect()
+    }
+
     /// Returns the string representation of the line ending (`\n`, `\r\n`, or `\r`).
     ///
     /// # Example
@@ -81,7 +151,8 @@ impl LineEnding {
         s.replace("\n", self.as_str())
     }
 
-    /// Splits a string into lines using the detected line ending.
+    /// Splits a string into a vector of strings using the auto-detected line ending
+    /// parsed from the string.
     ///
     /// # Example
     ///
@@ -97,7 +168,32 @@ impl LineEnding {
         s.split(line_ending).map(String::from).collect()
     }
 
-    /// Joins a vector of strings with the specified line ending.
+    /// Splits a string into lines using the specified line ending.
+    ///
+    /// In most cases, `split` is the preferred method as it automatically detects the
+    /// line ending to use.
+    ///
+    /// Unlike [`LineEnding::split`], which detects the line ending type from the input,
+    /// this method explicitly uses the line ending type of `self` to split the string.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::LineEnding;
+    ///
+    /// let text = "line1\r\nline2\r\nline3";
+    /// let lines = LineEnding::CRLF.split_with(text);
+    /// assert_eq!(lines, vec!["line1", "line2", "line3"]);
+    ///
+    /// let text = "line1\nline2\nline3";
+    /// let lines = LineEnding::LF.split_with(text);
+    /// assert_eq!(lines, vec!["line1", "line2", "line3"]);
+    /// ```
+    pub fn split_with(&self, s: &str) -> Vec<String> {
+        s.split(self.as_str()).map(String::from).collect()
+    }
+
+    /// Joins a vector of strings using the specified line ending.
     ///
     /// # Example
     ///
@@ -112,7 +208,7 @@ impl LineEnding {
         lines.join(self.as_str())
     }
 
-    /// Converts a string from any line ending type to a specified one.
+    /// Applies a specific line ending type to an existing string.
     ///
     /// # Example
     ///
@@ -120,10 +216,10 @@ impl LineEnding {
     /// use line_ending::LineEnding;
     ///
     /// let mixed_text = "first line\r\nsecond line\rthird line\n";
-    /// assert_eq!(LineEnding::CRLF.convert_to(mixed_text), "first line\r\nsecond line\r\nthird line\r\n");
-    /// assert_eq!(LineEnding::LF.convert_to(mixed_text), "first line\nsecond line\nthird line\n");
+    /// assert_eq!(LineEnding::CRLF.apply(mixed_text), "first line\r\nsecond line\r\nthird line\r\n");
+    /// assert_eq!(LineEnding::LF.apply(mixed_text), "first line\nsecond line\nthird line\n");
     /// ```
-    pub fn convert_to(&self, s: &str) -> String {
+    pub fn apply(&self, s: &str) -> String {
         let normalized = Self::normalize(s);
         normalized.replace("\n", self.as_str())
     }
@@ -238,20 +334,153 @@ mod tests {
     }
 
     #[test]
-    fn convert_to_correctly_applies_line_endings() {
+    fn apply_correctly_applies_line_endings() {
         let mixed_text = "first line\r\nsecond line\rthird line\nfourth line\n";
 
         assert_eq!(
-            LineEnding::CRLF.convert_to(mixed_text),
+            LineEnding::CRLF.apply(mixed_text),
             "first line\r\nsecond line\r\nthird line\r\nfourth line\r\n"
         );
         assert_eq!(
-            LineEnding::CR.convert_to(mixed_text),
+            LineEnding::CR.apply(mixed_text),
             "first line\rsecond line\rthird line\rfourth line\r"
         );
         assert_eq!(
-            LineEnding::LF.convert_to(mixed_text),
+            LineEnding::LF.apply(mixed_text),
             "first line\nsecond line\nthird line\nfourth line\n"
         );
+    }
+
+    #[test]
+    fn handles_mixed_line_endings() {
+        // Mixed with some CRLF and CR, but LF is dominant
+        let mostly_lf = "line1\nline2\r\nline3\rline4\nline5\nline6\n";
+        assert_eq!(LineEnding::from(mostly_lf), LineEnding::LF);
+        assert_eq!(
+            LineEnding::score_mixed_types(mostly_lf,),
+            [
+                (LineEnding::CRLF, 1),
+                (LineEnding::CR, 1),
+                (LineEnding::LF, 4),
+            ]
+            .into_iter()
+            .collect::<LineEndingScores>()
+        );
+
+        // Mixed with some LF and CR, but CRLF is dominant
+        let mostly_crlf = "line1\r\nline2\r\nline3\nline4\rline5\r\nline6\r\n";
+        assert_eq!(LineEnding::from(mostly_crlf), LineEnding::CRLF);
+        assert_eq!(
+            LineEnding::score_mixed_types(mostly_crlf,),
+            [
+                (LineEnding::CRLF, 4),
+                (LineEnding::CR, 1),
+                (LineEnding::LF, 1),
+            ]
+            .into_iter()
+            .collect::<LineEndingScores>()
+        );
+
+        // Mixed with some LF and CRLF, but CR is dominant
+        let mostly_cr = "line1\rline2\r\nline3\rline4\nline5\rline6\r";
+        assert_eq!(LineEnding::from(mostly_cr), LineEnding::CR);
+        assert_eq!(
+            LineEnding::score_mixed_types(mostly_cr,),
+            [
+                (LineEnding::CRLF, 1),
+                (LineEnding::CR, 4),
+                (LineEnding::LF, 1),
+            ]
+            .into_iter()
+            .collect::<LineEndingScores>()
+        );
+    }
+
+    #[test]
+    fn handles_mixed_line_edge_cases() {
+        // Case 1: One Line Ending Type is Clearly Dominant
+        let mostly_crlf = "line1\r\nline2\r\nline3\nline4\r\nline5\r\n";
+        assert_eq!(LineEnding::from(mostly_crlf), LineEnding::CRLF); // CRLF is the most common
+
+        // Case 2: All Line Endings Appear Equally
+        let equal_mixed = "line1\r\nline2\nline3\rline4\r\nline5\nline6\r";
+        assert_eq!(LineEnding::from(equal_mixed), LineEnding::CRLF); // CRLF > CR > LF
+
+        // Case 3: Single Line Containing Multiple Line Endings
+        let mixed_on_one_line = "line1\r\nline2\rline3\r\nline4\r\nline5\r";
+        assert_eq!(LineEnding::from(mixed_on_one_line), LineEnding::CRLF); // CRLF appears the most overall
+
+        // Case 4: Empty Input Defaults to CRLF
+        let empty_text = "";
+        assert_eq!(LineEnding::from(empty_text), LineEnding::CRLF); // Defaults to CRLF
+    }
+
+    #[test]
+    fn ignores_escaped_line_endings_in_split() {
+        let input_lf = "First\\nSecond\\nThird";
+        let input_crlf = "First\\r\\nSecond\\r\\nThird";
+        let input_cr = "First\\rSecond\\rThird";
+
+        // Expected output: The input should NOT be split since these are escaped sequences
+        assert_eq!(LineEnding::split(input_lf), vec!["First\\nSecond\\nThird"]);
+        assert_eq!(
+            LineEnding::split(input_crlf),
+            vec!["First\\r\\nSecond\\r\\nThird"]
+        );
+        assert_eq!(LineEnding::split(input_cr), vec!["First\\rSecond\\rThird"]);
+    }
+
+    #[test]
+    fn split_does_not_split_on_escaped_line_endings() {
+        let input_lf = "First\\nSecond\\nThird";
+        let input_crlf = "First\\r\\nSecond\\r\\nThird";
+        let input_cr = "First\\rSecond\\rThird";
+
+        // All inputs should remain as a single, unsplit string
+        assert_eq!(LineEnding::split(input_lf), vec!["First\\nSecond\\nThird"]);
+        assert_eq!(
+            LineEnding::split(input_crlf),
+            vec!["First\\r\\nSecond\\r\\nThird"]
+        );
+        assert_eq!(LineEnding::split(input_cr), vec!["First\\rSecond\\rThird"]);
+    }
+
+    #[test]
+    fn split_correctly_splits_on_actual_line_endings() {
+        let input_lf = "First\nSecond\nThird";
+        let input_crlf = "First\r\nSecond\r\nThird";
+        let input_cr = "First\rSecond\rThird";
+
+        // Each input should split correctly based on its actual line endings
+        assert_eq!(
+            LineEnding::split(input_lf),
+            vec!["First", "Second", "Third"]
+        );
+        assert_eq!(
+            LineEnding::split(input_crlf),
+            vec!["First", "Second", "Third"]
+        );
+        assert_eq!(
+            LineEnding::split(input_cr),
+            vec!["First", "Second", "Third"]
+        );
+    }
+
+    #[test]
+    fn split_detects_mixed_escaped_and_actual_line_endings() {
+        // LF test case (escaped `\\n` should not trigger a split, actual `\n` should)
+        let input_lf = "First\\nSecond\nThird";
+        assert_eq!(LineEnding::split(input_lf), vec!["First\\nSecond", "Third"]);
+
+        // CRLF test case (escaped `\\r\\n` should be ignored, actual `\r\n` should split)
+        let input_crlf = "First\\r\\nSecond\r\nThird";
+        assert_eq!(
+            LineEnding::split(input_crlf),
+            vec!["First\\r\\nSecond", "Third"]
+        );
+
+        // CR test case (escaped `\\r` should be ignored, actual `\r` should split)
+        let input_cr = "First\\rSecond\rThird";
+        assert_eq!(LineEnding::split(input_cr), vec!["First\\rSecond", "Third"]);
     }
 }
