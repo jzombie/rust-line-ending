@@ -109,7 +109,7 @@ assert_eq!(LineEnding::from(lf), LineEnding::LF);
 
 ### Normalize
 
-Convert all line endings in a string to LF (`\n`) for consistent processing.
+Convert all line endings in a string to `LF` (`\n`) for consistent processing.
 
 ```rust
 use line_ending::LineEnding;
