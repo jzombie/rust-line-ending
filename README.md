@@ -213,16 +213,7 @@ Count occurrences of each line ending type in the given string.
 
 ```rust
 use line_ending::{LineEnding, LineEndingScores};
-
 // `LineEndingScores` is a hash map that associates each line ending type with its occurrence count.
-
-
-
-
-
-
-
-
 
 let mostly_lf = "line1\nline2\r\nline3\rline4\nline5\nline6\n";
 assert_eq!(LineEnding::from(mostly_lf), LineEnding::LF);
