@@ -130,10 +130,11 @@ Restore line endings in a string to the specified type.
 ```rust
 use line_ending::LineEnding;
 
-let text = "first\nsecond\nthird";
-let crlf_restored = LineEnding::CRLF.denormalize(text);
-let cr_restored = LineEnding::CR.denormalize(text);
-let lf_restored = LineEnding::LF.denormalize(text);
+let lf = "first\nsecond\nthird";
+
+let crlf_restored = LineEnding::CRLF.denormalize(lf);
+let cr_restored = LineEnding::CR.denormalize(lf);
+let lf_restored = LineEnding::LF.denormalize(lf);
 
 assert_eq!(crlf_restored, "first\r\nsecond\r\nthird");
 assert_eq!(cr_restored, "first\rsecond\rthird");
@@ -147,8 +148,8 @@ When a string contains multiple types of line endings (`LF`, `CRLF`, and `CR`), 
 ```rust
 use line_ending::LineEnding;
 
-let text = "line1\nline2\r\nline3\nline4\nline5\r\n";
-assert_eq!(LineEnding::from(text), LineEnding::LF); // LF is the most common
+let mixed_type = "line1\nline2\r\nline3\nline4\nline5\r\n";
+assert_eq!(LineEnding::from(mixed_type), LineEnding::LF); // LF is the most common
 ```
 
 The detection algorithm works as follows:
@@ -257,13 +258,13 @@ For example:
 ```rust
 use line_ending::LineEnding;
 
-let text = "First\\nSecond\nThird";
-let result = LineEnding::split(text);
+let lf_with_escaped = "First\\nSecond\nThird";
+let result = LineEnding::split(lf_with_escaped);
 
 assert_eq!(result, vec!["First\\nSecond", "Third"]); // Escaped \\n remains intact
 
-let actual_newline_text = "First\nSecond\nThird";
-let result_actual = LineEnding::split(actual_newline_text);
+let lf = "First\nSecond\nThird";
+let result_actual = LineEnding::split(lf);
 
 assert_eq!(result_actual, vec!["First", "Second", "Third"]); // Actual \n splits
 ```
