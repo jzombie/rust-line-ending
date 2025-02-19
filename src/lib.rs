@@ -50,7 +50,7 @@ impl From<&str> for LineEnding {
         let max_score = crlf_score.max(cr_score).max(lf_score);
 
         if max_score == 0 {
-            Self::LF
+            Self::CRLF
         } else if crlf_score == max_score {
             Self::CRLF
         } else if cr_score == max_score {
@@ -410,9 +410,9 @@ mod tests {
         let mixed_on_one_line = "line1\r\nline2\rline3\r\nline4\r\nline5\r";
         assert_eq!(LineEnding::from(mixed_on_one_line), LineEnding::CRLF); // CRLF appears the most overall
 
-        // Case 4: Empty Input Defaults to LF
+        // Case 4: Empty Input Defaults to CRLF
         let empty_text = "";
-        assert_eq!(LineEnding::from(empty_text), LineEnding::LF); // Defaults to LF
+        assert_eq!(LineEnding::from(empty_text), LineEnding::CRLF); // Defaults to CRLF
     }
 
     #[test]

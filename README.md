@@ -30,15 +30,15 @@ Split a string into a vector of strings using the auto-detected line ending pars
 ```rust
 use line_ending::LineEnding;
 
-let crlf_lines = LineEnding::split("first\r\nsecond\r\nthird");
-let cr_lines = LineEnding::split("first\rsecond\rthird");
-let lf_lines = LineEnding::split("first\nsecond\nthird");
+let crlf = LineEnding::split("first\r\nsecond\r\nthird");
+let cr = LineEnding::split("first\rsecond\rthird");
+let lf = LineEnding::split("first\nsecond\nthird");
 
 let expected = vec!["first", "second", "third"];
 
-assert_eq!(crlf_lines, expected);
-assert_eq!(cr_lines, expected);
-assert_eq!(lf_lines, expected);
+assert_eq!(crlf, expected);
+assert_eq!(cr, expected);
+assert_eq!(lf, expected);
 ```
 
 ### Join Multiple Strings into a Single String
@@ -98,22 +98,13 @@ Detect the predominant line ending style used in the input string.
 ```rust
 use line_ending::LineEnding;
 
-let sample = "first line\nsecond line\nthird line";
-assert_eq!(LineEnding::from(sample), LineEnding::LF);
-```
+let crlf = "first line\r\nsecond line\r\nthird line";
+let cr = "first line\rsecond line\rthird line";
+let lf = "first line\nsecond line\nthird line";
 
-```rust
-use line_ending::LineEnding;
-
-let sample = "first line\r\nsecond line\r\nthird line";
-assert_eq!(LineEnding::from(sample), LineEnding::CRLF);
-```
-
-```rust
-use line_ending::LineEnding;
-
-let sample = "first line\rsecond line\rthird line";
-assert_eq!(LineEnding::from(sample), LineEnding::CR);
+assert_eq!(LineEnding::from(crlf), LineEnding::CRLF);
+assert_eq!(LineEnding::from(cr), LineEnding::CR);
+assert_eq!(LineEnding::from(lf), LineEnding::LF);
 ```
 
 ### Normalize
@@ -149,7 +140,7 @@ assert_eq!(cr_restored, "first\rsecond\rthird");
 assert_eq!(lf_restored, "first\nsecond\nthird");
 ```
 
-### Handling Mixed Line Endings
+### Handling Mixed-Type Line Endings
 
 When a string contains multiple types of line endings (`LF`, `CRLF`, and `CR`), the `LineEnding::from` method will detect the most frequent line ending type and return it as the dominant one. This ensures a consistent approach to mixed-line-ending detection.
 
@@ -202,13 +193,13 @@ let mixed_on_one_line = "line1\r\nline2\rline3\r\nline4\r\nline5\r";
 assert_eq!(LineEnding::from(mixed_on_one_line), LineEnding::CRLF); // CRLF appears the most overall
 ```
 
-##### Case 4: Empty Input Defaults to LF
+##### Case 4: Empty Input Defaults to CRLF
 
 ```rust
 use line_ending::LineEnding;
 
 let empty_text = "";
-assert_eq!(LineEnding::from(empty_text), LineEnding::LF); // Defaults to LF
+assert_eq!(LineEnding::from(empty_text), LineEnding::CRLF); // Defaults to CRLF
 ```
 
 #### Additional Mixed-Type Code Examples
@@ -257,12 +248,9 @@ let split_crlf = LineEnding::CRLF.split_with(mostly_lf);
 assert_eq!(split_crlf, vec!["line1\nline2", "line3\rline4\nline5\nline6\n"]);
 ```
 
-### Auto-Handling Escaped Line Endings
+### Escaped vs. Actual Line Endings
 
-Rust automatically treats escaped line endings (e.g., `\\n`, `\\r\\n`, `\\r`) as 
-literal text and does not interpret them as actual line breaks. This means that 
-functions like `split()` and `replace()` operate **only on actual newlines**, 
-ensuring efficient and predictable behavior **without additional processing overhead**.
+Rust treats `\\n` as a literal sequence rather than an actual newline. This behavior ensures that escaped sequences are not mistakenly interpreted as real line breaks.
 
 For example:
 
