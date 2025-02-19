@@ -49,9 +49,9 @@ impl From<&str> for LineEnding {
         // Select the highest count
         let max_score = crlf_score.max(cr_score).max(lf_score);
 
-        if max_score == 0 {
-            Self::CRLF
-        } else if crlf_score == max_score {
+        if max_score == 0 || crlf_score == max_score {
+            // `CRLF` is chosen as a tie-breaker because it represents both `CR`
+            // and `LF`, making it the most inclusive option
             Self::CRLF
         } else if cr_score == max_score {
             Self::CR

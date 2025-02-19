@@ -149,7 +149,7 @@ When a string contains multiple types of line endings (`LF`, `CRLF`, and `CR`), 
 use line_ending::LineEnding;
 
 let mixed_type = "line1\nline2\r\nline3\nline4\nline5\r\n";
-assert_eq!(LineEnding::from(mixed_type), LineEnding::LF); // LF is the most common
+assert_eq!(LineEnding::from(mixed_type), LineEnding::LF); // `LF` is the most common
 ```
 
 The detection algorithm works as follows:
@@ -166,22 +166,24 @@ The detection algorithm works as follows:
 use line_ending::LineEnding;
 
 let mostly_crlf = "line1\r\nline2\r\nline3\nline4\r\nline5\r\n"; 
-assert_eq!(LineEnding::from(mostly_crlf), LineEnding::CRLF); // CRLF is the most common
+assert_eq!(LineEnding::from(mostly_crlf), LineEnding::CRLF); // `CRLF` is the most common
 
 let mostly_cr = "line1\rline2\rline3\nline4\rline5\r"; 
-assert_eq!(LineEnding::from(mostly_cr), LineEnding::CR); // CR is the most common
+assert_eq!(LineEnding::from(mostly_cr), LineEnding::CR); // `CR` is the most common
 ```
 
 ##### Case 2: All Line Endings Appear Equally
 
-If `LF`, `CRLF`, and `CR` all appear the same number of times, the function will return CRLF as a tie-breaker.
+If `LF`, `CRLF`, and `CR` all appear the same number of times, the function will return `CRLF` as a tie-breaker.
 
 ```rust
 use line_ending::LineEnding;
 
 let equal_mixed = "line1\r\nline2\nline3\rline4\r\nline5\nline6\r"; 
-assert_eq!(LineEnding::from(equal_mixed), LineEnding::CRLF); // CRLF > CR > LF
+assert_eq!(LineEnding::from(equal_mixed), LineEnding::CRLF); // `CRLF` > `CR` > `LF`
 ```
+
+*`CRLF` is chosen as a tie-breaker because it represents both `CR` and `LF`, making it the most inclusive option.*
 
 ##### Case 3: Single Line Containing Multiple Line Endings
 
@@ -191,16 +193,16 @@ If a single line contains different line endings, the function still chooses the
 use line_ending::LineEnding;
 
 let mixed_on_one_line = "line1\r\nline2\rline3\r\nline4\r\nline5\r"; 
-assert_eq!(LineEnding::from(mixed_on_one_line), LineEnding::CRLF); // CRLF appears the most overall
+assert_eq!(LineEnding::from(mixed_on_one_line), LineEnding::CRLF); // `CRLF` appears the most overall
 ```
 
-##### Case 4: Empty Input Defaults to CRLF
+##### Case 4: Empty Input Defaults to `CRLF`
 
 ```rust
 use line_ending::LineEnding;
 
 let empty_text = "";
-assert_eq!(LineEnding::from(empty_text), LineEnding::CRLF); // Defaults to CRLF
+assert_eq!(LineEnding::from(empty_text), LineEnding::CRLF); // Defaults to `CRLF`
 ```
 
 #### Additional Mixed-Type Code Examples
@@ -261,12 +263,12 @@ use line_ending::LineEnding;
 let lf_with_escaped = "First\\nSecond\nThird";
 let result = LineEnding::split(lf_with_escaped);
 
-assert_eq!(result, vec!["First\\nSecond", "Third"]); // Escaped \\n remains intact
+assert_eq!(result, vec!["First\\nSecond", "Third"]); // Escaped `\\n` remains intact
 
 let lf = "First\nSecond\nThird";
 let result_actual = LineEnding::split(lf);
 
-assert_eq!(result_actual, vec!["First", "Second", "Third"]); // Actual \n splits
+assert_eq!(result_actual, vec!["First", "Second", "Third"]); // Actual `\n` splits
 ```
 
 ## License
