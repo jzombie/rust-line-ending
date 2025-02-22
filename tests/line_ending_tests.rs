@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use line_ending::{LineEnding, LineEndingScores};
 
     fn get_readme_contents() -> String {
         use std::fs::File;
