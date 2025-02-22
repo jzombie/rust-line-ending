@@ -23,6 +23,10 @@ cargo add line-ending
 
 ## Usage
 
+```rust
+todo!("Add example for detecting from character stream");
+```
+
 ### Split into Multiple Strings
 
 Split a string into a vector of strings using the auto-detected line ending parsed from the string.

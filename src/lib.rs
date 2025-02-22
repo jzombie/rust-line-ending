@@ -1,3 +1,6 @@
+#[cfg(doctest)]
+doc_comment::doctest!("../README.md");
+
 pub mod line_ending;
 pub use line_ending::{LineEnding, LineEndingScores};
 

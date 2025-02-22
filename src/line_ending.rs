@@ -1,6 +1,3 @@
-#[cfg(doctest)]
-doc_comment::doctest!("../README.md");
-
 use std::collections::HashMap;
 
 
