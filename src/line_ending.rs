@@ -124,6 +124,31 @@ impl LineEnding {
         }
     }
 
+    /// Returns the character representation of the line ending if it is a single character.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the line ending is CRLF, because CRLF is composed of two characters
+    /// and cannot be represented as a single character.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::LineEnding;
+    ///
+    /// assert_eq!(LineEnding::LF.as_char(), '\n');
+    /// assert_eq!(LineEnding::CR.as_char(), '\r');
+    /// // The following call will panic:
+    /// // LineEnding::CRLF.as_char();
+    /// ```
+    pub fn as_char(&self) -> char {
+        match self {
+            Self::LF => '\n',
+            Self::CR => '\r',
+            Self::CRLF => panic!("CRLF cannot be represented as a single character"),
+        }
+    }
+
     /// Converts all line endings in a string to LF (`\n`) for consistent processing.
     ///
     /// # Example
@@ -486,6 +511,19 @@ mod tests {
         assert_eq!(LineEnding::split(input_cr), vec!["First\\rSecond", "Third"]);
     }
 
- 
+    #[test]
+    fn test_as_char_returns_single_char_for_lf_and_cr() {
+        // LF should return '\n'
+        assert_eq!(LineEnding::LF.as_char(), '\n');
+        // CR should return '\r'
+        assert_eq!(LineEnding::CR.as_char(), '\r');
+    }
+
+    #[test]
+    #[should_panic(expected = "CRLF cannot be represented as a single character")]
+    fn test_as_char_panics_for_crlf() {
+        // CRLF is composed of two characters, so this should panic.
+        let _ = LineEnding::CRLF.as_char();
+    }
 
 }
