@@ -2,6 +2,8 @@
 doc_comment::doctest!("../README.md");
 
 use std::collections::HashMap;
+use std::iter::Peekable;
+use std::str::Chars;
 
 /// Enum representing the detected line ending style.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -25,7 +27,9 @@ pub enum LineEnding {
 /// the distribution of line endings in a text.
 pub type LineEndingScores = HashMap<LineEnding, usize>;
 
+
 impl From<&str> for LineEnding {
+    
     /// Detects the predominant line ending style used in the input string.
     ///
     /// Note: This assumes that the input string is not of varying types, in
@@ -62,6 +66,40 @@ impl From<&str> for LineEnding {
 }
 
 impl LineEnding {
+    /// Consumes the line ending from the iterator if the upcoming characters
+    /// form a line break, and returns its type. Otherwise, returns None.
+    ///
+    /// The underlying iterator must be cloneable so we can peek two items.
+    pub fn consume_line_ending<I>(it: &mut Peekable<I>) -> Option<LineEnding>
+    where
+        I: Iterator<Item = char> + Clone,
+    {
+        if let Some(&first) = it.peek() {
+            if first == '\r' {
+                // Clone the iterator to inspect the next character.
+                let mut clone = it.clone();
+                clone.next(); // consume '\r' in the clone
+                if let Some(&second) = clone.peek() {
+                    if second == '\n' {
+                        // It's a CRLF sequence: consume both.
+                        it.next(); // consume '\r'
+                        it.next(); // consume '\n'
+                        return Some(LineEnding::CRLF);
+                    }
+                }
+                // Otherwise, it's a lone CR: consume it.
+                it.next();
+                return Some(LineEnding::CR);
+            } else if first == '\n' {
+                // It's LF: consume it.
+                it.next();
+                return Some(LineEnding::LF);
+            }
+        }
+        None
+    }
+
+
     /// Counts occurrences of each line ending type in the given string.
     ///
     /// This function analyzes the input string and returns a `LineEndingScores`
@@ -483,4 +521,31 @@ mod tests {
         let input_cr = "First\\rSecond\rThird";
         assert_eq!(LineEnding::split(input_cr), vec!["First\\rSecond", "Third"]);
     }
+
+    #[test]
+    fn test_consume_line_endings() {
+        // This string has:
+        // - "line1" ending with CRLF,
+        // - "line2" ending with LF,
+        // - "line3" ending with CR,
+        // followed by "line4" (with no trailing line break).
+        let s = "line1\r\nline2\nline3\rline4";
+        let mut it = s.chars().peekable();
+        let mut consumed = Vec::new();
+
+        // Iterate over the stream, letting consume_line_ending
+        // consume any line break tokens.
+        while it.peek().is_some() {
+            if let Some(le) = LineEnding::consume_line_ending(&mut it) {
+                consumed.push(le);
+            } else {
+                // Not a line break; advance one character.
+                it.next();
+            }
+        }
+        // Expect to detect, in order: CRLF, LF, and CR.
+        let expected = vec![LineEnding::CRLF, LineEnding::LF, LineEnding::CR];
+        assert_eq!(consumed, expected);
+    }
+
 }
