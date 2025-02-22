@@ -1,4 +1,3 @@
-
 #[cfg(test)]
 mod tests {
     use line_ending::{LineEnding, PeekableLineEndingExt};
