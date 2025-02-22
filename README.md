@@ -141,23 +141,6 @@ assert_eq!(cr_restored, "first\rsecond\rthird");
 assert_eq!(lf_restored, "first\nsecond\nthird");
 ```
 
-### Handling Mixed-Type Line Endings
-
-When a string contains multiple types of line endings (`LF`, `CRLF`, and `CR`), the `LineEnding::from` method will detect the most frequent line ending type and return it as the dominant one. This ensures a consistent approach to mixed-line-ending detection.
-
-```rust
-use line_ending::LineEnding;
-
-let mixed_type = "line1\nline2\r\nline3\nline4\nline5\r\n";
-assert_eq!(LineEnding::from(mixed_type), LineEnding::LF); // `LF` is the most common
-```
-
-The detection algorithm works as follows:
-
-1. Counts occurrences of each line ending type (`LF`, `CRLF`, `CR`).
-2. Selects the most frequent one as the detected line ending.
-3. Defaults to `CRLF` if all are equally present or if the input is empty.
-
 ### Handling Character Streams
 
 When processing text from a stream (for example, when reading from a file), you often work with a `Peekable` iterator over characters. Manually checking for a newline (such as '\n') isn’t enough to handle all platforms, because Windows uses a two‑character sequence (`\r\n`) and some older systems use just `\r`.
@@ -187,6 +170,23 @@ lines.push(current_line);
 
 assert_eq!(lines, vec!["line1", "line2", "line3", "line4"]);
 ```
+
+### Handling Mixed-Type Line Endings
+
+When a string contains multiple types of line endings (`LF`, `CRLF`, and `CR`), the `LineEnding::from` method will detect the most frequent line ending type and return it as the dominant one. This ensures a consistent approach to mixed-line-ending detection.
+
+```rust
+use line_ending::LineEnding;
+
+let mixed_type = "line1\nline2\r\nline3\nline4\nline5\r\n";
+assert_eq!(LineEnding::from(mixed_type), LineEnding::LF); // `LF` is the most common
+```
+
+The detection algorithm works as follows:
+
+1. Counts occurrences of each line ending type (`LF`, `CRLF`, `CR`).
+2. Selects the most frequent one as the detected line ending.
+3. Defaults to `CRLF` if all are equally present or if the input is empty.
 
 #### Edge Cases & Examples
 
