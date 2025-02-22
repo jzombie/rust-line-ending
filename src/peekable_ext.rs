@@ -1,5 +1,5 @@
-use std::iter::Peekable;
 use crate::LineEnding;
+use std::iter::Peekable;
 
 /// A trait to extend Peekable<char> with a method for consuming line endings.
 pub trait PeekableLineEndingExt {
@@ -78,5 +78,4 @@ mod tests {
         let expected_lines = vec!["line1", "line2", "line3", "line4"];
         assert_eq!(lines, expected_lines);
     }
-
 }

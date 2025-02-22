@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-
 /// Enum representing the detected line ending style.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[allow(clippy::upper_case_acronyms)]
@@ -23,9 +22,7 @@ pub enum LineEnding {
 /// the distribution of line endings in a text.
 pub type LineEndingScores = HashMap<LineEnding, usize>;
 
-
 impl From<&str> for LineEnding {
-    
     /// Detects the predominant line ending style used in the input string.
     ///
     /// Note: This assumes that the input string is not of varying types, in
@@ -60,8 +57,6 @@ impl From<&str> for LineEnding {
         }
     }
 }
-
-
 
 impl LineEnding {
     /// Counts occurrences of each line ending type in the given string.
@@ -525,5 +520,4 @@ mod tests {
         // CRLF is composed of two characters, so this should panic.
         let _ = LineEnding::CRLF.as_char();
     }
-
 }
