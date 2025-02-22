@@ -65,41 +65,45 @@ impl From<&str> for LineEnding {
     }
 }
 
-impl LineEnding {
+/// A trait to extend Peekable<char> with a method for consuming line endings.
+pub trait PeekableLineEndingExt {
     /// Consumes the line ending from the iterator if the upcoming characters
-    /// form a line break, and returns its type. Otherwise, returns None.
-    ///
-    /// The underlying iterator must be cloneable so we can peek two items.
-    pub fn consume_line_ending<I>(it: &mut Peekable<I>) -> Option<LineEnding>
-    where
-        I: Iterator<Item = char> + Clone,
-    {
-        if let Some(&first) = it.peek() {
+    /// form a line break (CR, LF, or CRLF), and returns its type.
+    /// Otherwise, returns None.
+    fn consume_line_ending(&mut self) -> Option<LineEnding>;
+}
+
+impl<I> PeekableLineEndingExt for Peekable<I>
+where
+    I: Iterator<Item = char> + Clone,
+{
+    fn consume_line_ending(&mut self) -> Option<LineEnding> {
+        if let Some(&first) = self.peek() {
             if first == '\r' {
-                // Clone the iterator to inspect the next character.
-                let mut clone = it.clone();
-                clone.next(); // consume '\r' in the clone
+                let mut clone = self.clone();
+                clone.next(); // skip the '\r' in the clone
                 if let Some(&second) = clone.peek() {
                     if second == '\n' {
-                        // It's a CRLF sequence: consume both.
-                        it.next(); // consume '\r'
-                        it.next(); // consume '\n'
+                        // Consume both for CRLF.
+                        self.next();
+                        self.next();
                         return Some(LineEnding::CRLF);
                     }
                 }
-                // Otherwise, it's a lone CR: consume it.
-                it.next();
+                // Otherwise, consume lone CR.
+                self.next();
                 return Some(LineEnding::CR);
             } else if first == '\n' {
-                // It's LF: consume it.
-                it.next();
+                self.next();
                 return Some(LineEnding::LF);
             }
         }
         None
     }
+}
 
 
+impl LineEnding {
     /// Counts occurrences of each line ending type in the given string.
     ///
     /// This function analyzes the input string and returns a `LineEndingScores`
@@ -536,7 +540,7 @@ mod tests {
         // Iterate over the stream, letting consume_line_ending
         // consume any line break tokens.
         while it.peek().is_some() {
-            if let Some(le) = LineEnding::consume_line_ending(&mut it) {
+            if let Some(le) = it.consume_line_ending() {
                 consumed.push(le);
             } else {
                 // Not a line break; advance one character.
