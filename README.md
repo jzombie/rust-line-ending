@@ -13,7 +13,7 @@
 | Windows-latest| [![Windows Tests][windows-latest-badge]][windows-latest-workflow]                    |
 
 
-A Rust crate to detect, normalize, and convert line endings across platforms. Ensures consistent handling of `LF`, `CRLF`, and `CR` line endings in text processing.
+A Rust crate to detect, normalize, and convert line endings across platforms, including support for character streams. Ensures consistent handling of `LF`, `CRLF`, and `CR` line endings in text processing.
 
 ## Install
 
