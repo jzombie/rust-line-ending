@@ -23,10 +23,6 @@ cargo add line-ending
 
 ## Usage
 
-```rust
-todo!("Add example for detecting from character stream");
-```
-
 ### Split into Multiple Strings
 
 Split a string into a vector of strings using the auto-detected line ending parsed from the string.
@@ -161,6 +157,36 @@ The detection algorithm works as follows:
 1. Counts occurrences of each line ending type (`LF`, `CRLF`, `CR`).
 2. Selects the most frequent one as the detected line ending.
 3. Defaults to `CRLF` if all are equally present or if the input is empty.
+
+### Handling Character Streams
+
+When processing text from a stream (for example, when reading from a file), you often work with a `Peekable` iterator over characters. Manually checking for a newline (such as '\n') isn’t enough to handle all platforms, because Windows uses a two‑character sequence (`\r\n`) and some older systems use just `\r`.
+
+This crate provides a trait extension (via the `PeekableLineEndingExt` trait) that adds a consume_line_ending() method to a `Peekable<Chars>` iterator. This method automatically detects and consumes the full line break sequence (whether it’s LF, CR, or CRLF) from the stream.
+
+The following example demonstrates how to split a character stream into lines without having to manually handle each line-ending case:
+
+```rust
+use line_ending::{LineEnding, PeekableLineEndingExt};
+
+let text = "line1\r\nline2\nline3\rline4";
+let mut it = text.chars().peekable();
+let mut lines = Vec::new();
+let mut current_line = String::new();
+
+while it.peek().is_some() {
+    // consume_line_ending() will automatically consume the full line break (CR, LF, or CRLF)
+    if it.consume_line_ending().is_some() {
+        lines.push(current_line);
+        current_line = String::new();
+    } else {
+        current_line.push(it.next().unwrap());
+    }
+}
+lines.push(current_line);
+
+assert_eq!(lines, vec!["line1", "line2", "line3", "line4"]);
+```
 
 #### Edge Cases & Examples
 
