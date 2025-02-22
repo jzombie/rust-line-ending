@@ -1,7 +1,7 @@
 use crate::LineEnding;
 use std::iter::Peekable;
 
-/// A trait to extend Peekable<char> with a method for consuming line endings.
+/// A trait to extend `Peekable<char>` with a method for consuming line endings.
 pub trait PeekableLineEndingExt {
     /// Consumes the line ending from the iterator if the upcoming characters
     /// form a line break (CR, LF, or CRLF), and returns its type.
