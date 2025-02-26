@@ -80,23 +80,17 @@ mod tests {
         let mut lines = Vec::new();
 
         while it.peek().is_some() {
-            println!("Before consume_line_ending(): {:?}", it.peek());
-
             if let Some(le) = it.consume_line_ending() {
                 consumed.push(le);
                 lines.push(current_line);
                 current_line = String::new();
             } else {
                 let next_char = it.next().unwrap();
-                println!("Adding character: {:?}", next_char);
                 current_line.push(next_char);
             }
         }
 
         lines.push(current_line);
-
-        println!("Final consumed: {:?}", consumed);
-        println!("Final lines: {:?}", lines);
 
         assert_eq!(
             consumed,
