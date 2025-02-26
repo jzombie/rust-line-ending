@@ -38,4 +38,36 @@ mod tests {
         let expected_lines = vec!["line1", "line2", "line3", "line4"];
         assert_eq!(lines, expected_lines);
     }
+
+    #[test]
+    fn test_consume_line_ending_with_escape_sequences() {
+        let s = "\\r\\nline1\\n\nline2\\r\rline3\\r\\n\r\nline4";
+        let mut it = s.chars().peekable();
+        let mut consumed = Vec::new();
+        let mut current_line = String::new();
+        let mut lines = Vec::new();
+
+        // Iterate over the stream. If a line ending is consumed,
+        // push the current line into `lines` and reset it.
+        while it.peek().is_some() {
+            if let Some(le) = it.consume_line_ending() {
+                consumed.push(le);
+                lines.push(current_line);
+                current_line = String::new();
+            } else {
+                // Not a line break; append the character to the current line.
+                current_line.push(it.next().unwrap());
+            }
+        }
+        // Push the final line (which may be non-empty).
+        lines.push(current_line);
+
+        // Expect to detect, in order: CRLF, LF, and CR.
+        let expected_line_endings = vec![LineEnding::LF, LineEnding::CR, LineEnding::CRLF];
+        assert_eq!(consumed, expected_line_endings);
+
+        // Escaped line ending sequences are part of the content.
+        let expected_lines = vec!["\\r\\nline1\\n", "line2\\r", "line3\\r\\n", "line4"];
+        assert_eq!(lines, expected_lines);
+    }
 }
