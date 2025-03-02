@@ -16,7 +16,6 @@ mod tests {
         assert_eq!(detected, LineEnding::LF, "WASM should default to LF");
     }
 
-
     fn get_readme_contents() -> String {
         use std::fs::File;
         use std::io::Read;

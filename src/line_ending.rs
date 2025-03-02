@@ -80,7 +80,6 @@ impl LineEnding {
         }
     }
 
-
     /// Counts occurrences of each line ending type in the given string.
     ///
     /// This function analyzes the input string and returns a `LineEndingScores`
