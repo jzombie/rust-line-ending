@@ -24,7 +24,10 @@ mod tests {
         let read_file_detected = LineEnding::from(get_readme_contents().as_str());
 
         // Both methods should produce the same result
-        assert_eq!(platform_detected, read_file_detected, "Platform and read file should match");
+        assert_eq!(
+            platform_detected, read_file_detected,
+            "Platform and read file should match"
+        );
 
         // Expected result based on platform
         let expected = if cfg!(target_os = "windows") {
@@ -33,9 +36,11 @@ mod tests {
             LineEnding::LF
         };
 
-        assert_eq!(platform_detected, expected, "Detected platform line ending should match expected");
+        assert_eq!(
+            platform_detected, expected,
+            "Detected platform line ending should match expected"
+        );
     }
-
 
     #[test]
     fn detects_lf_correctly() {
