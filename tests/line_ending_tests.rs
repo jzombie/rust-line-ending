@@ -2,20 +2,6 @@
 mod tests {
     use line_ending::{LineEnding, LineEndingScores};
 
-    #[test]
-    fn detects_current_platform_line_ending() {
-        let detected = LineEnding::from_current_platform();
-
-        #[cfg(target_os = "windows")]
-        assert_eq!(detected, LineEnding::CRLF, "Windows should detect CRLF");
-
-        #[cfg(target_family = "unix")]
-        assert_eq!(detected, LineEnding::LF, "Unix/macOS should detect LF");
-
-        #[cfg(target_family = "wasm")]
-        assert_eq!(detected, LineEnding::LF, "WASM should default to LF");
-    }
-
     fn get_readme_contents() -> String {
         use std::fs::File;
         use std::io::Read;
@@ -34,15 +20,25 @@ mod tests {
 
     #[test]
     fn detects_platform_line_ending_correctly() {
+        let platform_detected = LineEnding::from_current_platform();
+
         // Determine line ending from file contents
-        let detected = LineEnding::from(get_readme_contents().as_str());
+        let read_file_detected = LineEnding::from(get_readme_contents().as_str());
+
+        assert_eq!(platform_detected, read_file_detected, "Platform and read file should be the same result");
 
         // Assert expected line ending based on platform
         #[cfg(target_os = "windows")]
-        assert_eq!(detected, LineEnding::CRLF, "Windows should detect CRLF");
+        assert_eq!(platform_detected, LineEnding::CRLF, "Windows should detect CRLF");
+
+        #[cfg(target_os = "windows")]
+        assert_eq!(read_file_detected, LineEnding::CRLF, "Windows should detect CRLF");
 
         #[cfg(target_family = "unix")]
-        assert_eq!(detected, LineEnding::LF, "Unix/macOS should detect LF");
+        assert_eq!(platform_detected, LineEnding::LF, "Unix/macOS should detect LF");
+
+        #[cfg(target_family = "unix")]
+        assert_eq!(read_file_detected, LineEnding::LF, "Unix/macOS should detect LF");
     }
 
     #[test]
