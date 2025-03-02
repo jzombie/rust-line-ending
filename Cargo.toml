@@ -1,6 +1,6 @@
 [package]
 name = "line-ending"
-version = "1.4.0"
+version = "1.5.0"
 description = "Detect, normalize, and convert line endings across platforms, including support for character streams. Ensures consistent handling of LF, CRLF, and CR line endings in text processing."
 authors = ["Jeremy Harris <jeremy.harris@zenosmosis.com>"]
 edition = "2021"

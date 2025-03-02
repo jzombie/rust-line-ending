@@ -20,15 +20,26 @@ mod tests {
 
     #[test]
     fn detects_platform_line_ending_correctly() {
-        // Determine line ending from file contents
-        let detected = LineEnding::from(get_readme_contents().as_str());
+        let platform_detected = LineEnding::from_current_platform();
+        let read_file_detected = LineEnding::from(get_readme_contents().as_str());
 
-        // Assert expected line ending based on platform
-        #[cfg(target_os = "windows")]
-        assert_eq!(detected, LineEnding::CRLF, "Windows should detect CRLF");
+        // Both methods should produce the same result
+        assert_eq!(
+            platform_detected, read_file_detected,
+            "Platform and read file should match"
+        );
 
-        #[cfg(target_family = "unix")]
-        assert_eq!(detected, LineEnding::LF, "Unix/macOS should detect LF");
+        // Expected result based on platform
+        let expected = if cfg!(target_os = "windows") {
+            LineEnding::CRLF
+        } else {
+            LineEnding::LF
+        };
+
+        assert_eq!(
+            platform_detected, expected,
+            "Detected platform line ending should match expected"
+        );
     }
 
     #[test]

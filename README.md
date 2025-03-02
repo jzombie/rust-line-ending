@@ -23,6 +23,25 @@ cargo add line-ending
 
 ## Usage
 
+### Detect for Current Platform
+
+Line endings can be auto-detected for the current platform.
+
+```rust
+use line_ending::LineEnding;
+
+let detected = LineEnding::from_current_platform();
+
+#[cfg(target_os = "windows")]
+assert_eq!(detected, LineEnding::CRLF, "Windows should detect CRLF");
+
+#[cfg(target_family = "unix")]
+assert_eq!(detected, LineEnding::LF, "Unix/macOS should detect LF");
+
+#[cfg(target_family = "wasm")]
+assert_eq!(detected, LineEnding::LF, "WASM should default to LF");
+```
+
 ### Split into Multiple Strings
 
 Split a string into a vector of strings using the auto-detected line ending parsed from the string.
