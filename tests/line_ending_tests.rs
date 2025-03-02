@@ -2,6 +2,21 @@
 mod tests {
     use line_ending::{LineEnding, LineEndingScores};
 
+    #[test]
+    fn detects_current_platform_line_ending() {
+        let detected = LineEnding::from_current_platform();
+
+        #[cfg(target_os = "windows")]
+        assert_eq!(detected, LineEnding::CRLF, "Windows should detect CRLF");
+
+        #[cfg(target_family = "unix")]
+        assert_eq!(detected, LineEnding::LF, "Unix/macOS should detect LF");
+
+        #[cfg(target_family = "wasm")]
+        assert_eq!(detected, LineEnding::LF, "WASM should default to LF");
+    }
+
+
     fn get_readme_contents() -> String {
         use std::fs::File;
         use std::io::Read;

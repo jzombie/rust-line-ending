@@ -59,6 +59,28 @@ impl From<&str> for LineEnding {
 }
 
 impl LineEnding {
+    /// Detects the default line ending based on the current operating system.
+    ///
+    /// - **Unix-based (Linux/macOS):** Uses LF (`\n`).
+    /// - **Windows:** Uses CRLF (`\r\n`).
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use line_ending::LineEnding;
+    ///
+    /// let default_ending = LineEnding::from_current_platform();
+    /// println!("Default line ending: {:?}", default_ending);
+    /// ```
+    pub fn from_current_platform() -> Self {
+        if cfg!(windows) {
+            Self::CRLF
+        } else {
+            Self::LF
+        }
+    }
+
+
     /// Counts occurrences of each line ending type in the given string.
     ///
     /// This function analyzes the input string and returns a `LineEndingScores`
