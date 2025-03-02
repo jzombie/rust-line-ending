@@ -23,9 +23,9 @@ cargo add line-ending
 
 ## Usage
 
-### Instantiate for Current Platform
+### Detect for Current Platform
 
-Line endings can be auto detected for the current platform.
+Line endings can be auto-detected for the current platform.
 
 ```rust
 use line_ending::LineEnding;
