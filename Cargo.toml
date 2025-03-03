@@ -7,5 +7,5 @@ edition = "2021"
 repository = "https://github.com/jzombie/rust-line-ending"
 license = "MIT"
 
-[dependencies]
+[dev-dependencies]
 doc-comment = "0.3.3"
