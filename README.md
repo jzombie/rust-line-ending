@@ -1,6 +1,7 @@
 # Rust Line Endings
 
 [![made-with-rust][rust-logo]][rust-src-page]
+[![no_std][nostd-badge]](#no_std-support)
 [![crates.io][crates-badge]][crates-page]
 [![Documentation][docs-badge]][docs-page]
 [![MIT/Apache-2.0 licensed][license-badge]][license-page]
@@ -357,6 +358,8 @@ See [`CHANGELOG.md`](CHANGELOG.md) for release history.
 
 [rust-src-page]: https://www.rust-lang.org/
 [rust-logo]: https://img.shields.io/badge/Made%20with-Rust-black?&logo=Rust
+
+[nostd-badge]: https://img.shields.io/badge/no__std-supported-blue
 
 [crates-page]: https://crates.io/crates/line-ending
 [crates-badge]: https://img.shields.io/crates/v/line-ending.svg
