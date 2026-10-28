@@ -25,6 +25,8 @@ cargo add line-ending
 
 Line endings can be auto-detected for the current platform.
 
+*`no_std`-compatible: core only, no features required.*
+
 ```rust
 use line_ending::LineEnding;
 
@@ -44,6 +46,8 @@ assert_eq!(detected, LineEnding::LF, "WASM should default to LF");
 
 Split a string into a vector of strings using the auto-detected line ending parsed from the string.
 
+*Requires the `alloc` feature (enabled by default via `std`).*
+
 ```rust
 use line_ending::LineEnding;
 
@@ -61,6 +65,8 @@ assert_eq!(lf, expected);
 ### Join Multiple Strings into a Single String
 
 Join a vector of strings using the specified line ending.
+
+*Requires the `alloc` feature (enabled by default via `std`).*
 
 ```rust
 use line_ending::LineEnding;
@@ -89,6 +95,8 @@ assert_eq!(
 
 Apply a specific line ending type to an existing string.
 
+*Requires the `alloc` feature (enabled by default via `std`).*
+
 ```rust
 use line_ending::LineEnding;
 
@@ -112,6 +120,8 @@ assert_eq!(
 
 Detect the predominant line ending style used in the input string.
 
+*`no_std`-compatible: core only, no features required.*
+
 ```rust
 use line_ending::LineEnding;
 
@@ -128,6 +138,8 @@ assert_eq!(LineEnding::from(lf), LineEnding::LF);
 
 Convert all line endings in a string to `LF` (`\n`) for consistent processing.
 
+*Requires the `alloc` feature (enabled by default via `std`).*
+
 ```rust
 use line_ending::LineEnding;
 
@@ -143,6 +155,8 @@ assert_eq!(LineEnding::normalize(lf), lf);
 ### Denormalize
 
 Restore line endings in a string to the specified type.
+
+*Requires the `alloc` feature (enabled by default via `std`).*
 
 ```rust
 use line_ending::LineEnding;
@@ -161,6 +175,8 @@ assert_eq!(lf_restored, "first\nsecond\nthird");
 ### Handling Mixed-Type Line Endings
 
 When a string contains multiple types of line endings (`LF`, `CRLF`, and `CR`), the `LineEnding::from` method will detect the most frequent line ending type and return it as the dominant one. This ensures a consistent approach to mixed-line-ending detection.
+
+*`no_std`-compatible: core only, no features required.*
 
 ```rust
 use line_ending::LineEnding;
@@ -228,6 +244,8 @@ assert_eq!(LineEnding::from(empty_text), LineEnding::CRLF); // Defaults to `CRLF
 
 Count occurrences of each line ending type in the given string.
 
+*Requires `std` (default features).*
+
 ```rust
 use line_ending::{LineEnding, LineEndingScores};
 // `LineEndingScores` is a hash map that associates each line ending type with
@@ -251,6 +269,8 @@ assert_eq!(
 
 If you want to forcefully split by a certain type.
 
+*Requires the `alloc` feature (enabled by default via `std`).*
+
 ```rust
 use line_ending::{LineEnding};
 
@@ -267,6 +287,8 @@ When processing text from a stream (for example, when reading from a file), you 
 This crate provides a trait extension (via the `PeekableLineEndingExt` trait) that adds a consume_line_ending() method to a `Peekable<Chars>` iterator. This method automatically detects and consumes the full line break sequence (whether it’s LF, CR, or CRLF) from the stream.
 
 The following example demonstrates how to split a character stream into lines without having to manually handle each line-ending case:
+
+*Requires the `alloc` feature (enabled by default via `std`) for the `Vec`/`String` buffering in this example; the `PeekableLineEndingExt` trait itself is core-only.*
 
 ```rust
 use line_ending::{LineEnding, PeekableLineEndingExt};
@@ -308,6 +330,8 @@ When bytes arrive over I/O (files, sockets, pipes), a `\r\n` pair can be split a
 
 `LinesStreaming` yields `(line, terminator)` pairs, where the final unterminated line yields `None`. I/O and UTF-8 errors are yielded as `Err` (like `std::io::Lines`). Unlike the `char`-based API above, a backslash is treated as an ordinary byte — escape sequences are not interpreted on the wire.
 
+*Requires `std` (default features).*
+
 ```rust
 use line_ending::{LineEnding, LinesStreaming};
 use std::io::BufReader;
@@ -332,6 +356,8 @@ assert_eq!(
 ### Escaped vs. Actual Line Endings
 
 Rust treats `\\n` as a literal sequence rather than an actual newline. This behavior ensures that escaped sequences are not mistakenly interpreted as real line breaks.
+
+*Requires the `alloc` feature (enabled by default via `std`).*
 
 For example:
 
