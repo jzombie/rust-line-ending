@@ -12,10 +12,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  zero-deps:
+    name: zero-deps
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Absolute zero-dependency guarantee: `cargo tree` must list only the
+      # crate itself (one line) under every feature selection. Default edges
+      # include dev-dependencies, so this fails if any dependency of any
+      # kind is introduced.
+      - name: Verify zero dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for flags in "" "--all-features" "--no-default-features"; do
+            # shellcheck disable=SC2086
+            count=$(cargo tree --prefix none $flags | wc -l | tr -d ' ')
+            if [ "$count" -ne 1 ]; then
+              echo "FAIL: 'cargo tree $flags' lists $count packages, expected 1 (self only):"
+              # shellcheck disable=SC2086
+              cargo tree --prefix none $flags
+              exit 1
+            fi
+            echo "OK: 'cargo tree $flags' -> self only"
+          done
+
   udeps:
     name: udeps
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v7
 
