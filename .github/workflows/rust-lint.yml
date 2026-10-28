@@ -1,27 +1,149 @@
-name: Rust Lint
+name: rust-lint
+
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
+# Ensure only one run per branch/PR at a time. If new commits are pushed,
+# older jobs will be automatically canceled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint:
+  zero-deps:
+    name: zero-deps
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      # Absolute zero-dependency guarantee: `cargo tree` must list only the
+      # crate itself (one line) under every feature selection. Default edges
+      # include dev-dependencies, so this fails if any dependency of any
+      # kind is introduced.
+      - name: Verify zero dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for flags in "" "--all-features" "--no-default-features"; do
+            # shellcheck disable=SC2086
+            count=$(cargo tree --prefix none $flags | wc -l | tr -d ' ')
+            if [ "$count" -ne 1 ]; then
+              echo "FAIL: 'cargo tree $flags' lists $count packages, expected 1 (self only):"
+              # shellcheck disable=SC2086
+              cargo tree --prefix none $flags
+              exit 1
+            fi
+            echo "OK: 'cargo tree $flags' -> self only"
+          done
+
+  udeps:
+    name: udeps
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: udeps
+
+      - name: Install cargo-udeps
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v cargo-udeps >/dev/null 2>&1; then
+            cargo install cargo-udeps --locked
+          else
+            echo "cargo-udeps already installed; skipping"
+          fi
+
+      - name: Check unused dependencies (all features)
+        run: cargo udeps --workspace --all-targets --all-features
+
+      - name: Check unused dependencies (alloc, no std)
+        run: cargo udeps --workspace --all-targets --no-default-features --features alloc
+
+  linux-lint-tools:
+    name: lint (linux tools)
+    runs-on: ubuntu-latest
+    needs: udeps
+
+    steps:
+      - uses: actions/checkout@v7
+
       - uses: dtolnay/rust-toolchain@stable
-      
-      # Check formatting
-      - run: cargo fmt --all -- --check
+        with:
+          components: rustfmt, clippy
 
-      # Run Clippy with warnings treated as errors
-      - run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: lint
 
-      # Fail on documentation warnings
-      - run: RUSTDOCFLAGS="-Dwarnings" cargo doc --no-deps --document-private-items
+      - name: Install cargo-binstall
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v cargo-binstall >/dev/null 2>&1; then
+            curl -sSfL https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+          fi
 
-      # Install cargo-deny and check for security issues
-      - name: Install cargo-deny
-        run: cargo install cargo-deny
-      - run: cargo deny check
+      - name: Install tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo binstall --no-confirm --no-symlinks --force cargo-deny cargo-audit cargo-sort \
+            || cargo install --locked --force cargo-deny cargo-audit cargo-sort
 
-      # Install and run cargo-audit for security vulnerabilities
-      - run: cargo install cargo-audit
-      - run: cargo audit
+      # Ensure all Cargo.toml files are sorted
+      - name: Check Cargo manifest sorting
+        run: cargo sort --workspace --check
+
+      # Check formatting across the entire workspace
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      # Run Clippy with all targets and features across workspace
+      - name: Run Clippy (all features)
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      # no-std tiers must be lint-clean too
+      - name: Run Clippy (alloc, no std)
+        run: cargo clippy --workspace --all-targets --no-default-features --features alloc -- -D warnings
+
+      - name: Run Clippy (core, no alloc)
+        run: cargo clippy --workspace --lib --no-default-features -- -D warnings
+
+      # Fail if any documentation warnings occur
+      - name: Check documentation
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --document-private-items
+
+      # Security: cargo-deny across workspace
+      - name: Run cargo-deny
+        run: cargo deny check # Note: Apparently `-- --workspace` is not valid here
+
+      # Security: cargo-audit on root Cargo.lock
+      - name: Run cargo-audit
+        run: cargo audit
+
+  clippy-windows:
+    name: lint (windows runner)
+    runs-on: windows-latest
+    needs: udeps
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Run Clippy on Windows runner
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings

@@ -1,4 +1,8 @@
+#[cfg(feature = "std")]
 use std::collections::HashMap;
+
+#[cfg(all(not(feature = "std"), feature = "alloc"))]
+use alloc::{string::String, vec::Vec};
 
 /// Enum representing the detected line ending style.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -18,8 +22,12 @@ pub enum LineEnding {
 /// `LineEnding` key corresponds to the number of times that specific
 /// line ending appears in a given string.
 ///
-/// This is used in functions like [`LineEnding::score_mixed_types`] to track
+/// This is used in [`LineEnding::score_mixed_types`] to track
 /// the distribution of line endings in a text.
+///
+/// Only available with the `std` feature (`HashMap` needs the standard
+/// library); the core counting logic is shared with [`LineEnding::from`].
+#[cfg(feature = "std")]
 pub type LineEndingScores = HashMap<LineEnding, usize>;
 
 impl From<&str> for LineEnding {
@@ -37,11 +45,7 @@ impl From<&str> for LineEnding {
     /// assert_eq!(LineEnding::from(sample), LineEnding::CRLF);
     /// ```
     fn from(s: &str) -> Self {
-        let scores = Self::score_mixed_types(s);
-
-        let crlf_score = *scores.get(&Self::CRLF).unwrap_or(&0);
-        let cr_score = *scores.get(&Self::CR).unwrap_or(&0);
-        let lf_score = *scores.get(&Self::LF).unwrap_or(&0);
+        let (crlf_score, cr_score, lf_score) = Self::count_breaks(s);
 
         // Select the highest count
         let max_score = crlf_score.max(cr_score).max(lf_score);
@@ -86,6 +90,10 @@ impl LineEnding {
     /// (a `HashMap<LineEnding, usize>`) containing the number of times each
     /// line ending appears.
     ///
+    /// Only available with the `std` feature (`HashMap` needs the standard
+    /// library). The counting itself is shared core logic; see
+    /// [`LineEnding::from`], which works on all tiers.
+    ///
     /// - `CRLF (\r\n)` is counted first to ensure `\r` inside `\r\n` is not
     ///   double-counted.
     /// - `CR (\r)` is counted separately, subtracting occurrences of `CRLF`.
@@ -103,14 +111,9 @@ impl LineEnding {
     /// assert_eq!(scores[&LineEnding::LF], 1);
     /// assert_eq!(scores[&LineEnding::CR], 1);
     /// ```
+    #[cfg(feature = "std")]
     pub fn score_mixed_types(s: &str) -> LineEndingScores {
-        let crlf_score = Self::CRLF.split_with(s).len().saturating_sub(1);
-
-        // Ensure CR is not double-counted when it's part of CRLF
-        let cr_score = Self::CR.split_with(s).len().saturating_sub(1) - crlf_score;
-
-        // Ensure LF is not double-counted when it's part of CRLF
-        let lf_score = Self::LF.split_with(s).len().saturating_sub(1) - crlf_score;
+        let (crlf_score, cr_score, lf_score) = Self::count_breaks(s);
 
         [
             (LineEnding::CRLF, crlf_score),
@@ -119,6 +122,39 @@ impl LineEnding {
         ]
         .into_iter()
         .collect()
+    }
+
+    /// Counts `(CRLF, lone CR, lone LF)` breaks in a single byte pass.
+    ///
+    /// Core-only logic shared by [`LineEnding::from`] (all tiers) and
+    /// [`LineEnding::score_mixed_types`] (`std` tier). Results match the
+    /// previous split-and-subtract scorer exactly: a `\r` immediately
+    /// followed by `\n` counts once as CRLF, never as CR + LF.
+    fn count_breaks(s: &str) -> (usize, usize, usize) {
+        let bytes = s.as_bytes();
+        let mut crlf = 0usize;
+        let mut cr = 0usize;
+        let mut lf = 0usize;
+        let mut i = 0usize;
+        while i < bytes.len() {
+            match bytes[i] {
+                b'\r' => {
+                    if i + 1 < bytes.len() && bytes[i + 1] == b'\n' {
+                        crlf += 1;
+                        i += 2;
+                    } else {
+                        cr += 1;
+                        i += 1;
+                    }
+                }
+                b'\n' => {
+                    lf += 1;
+                    i += 1;
+                }
+                _ => i += 1,
+            }
+        }
+        (crlf, cr, lf)
     }
 
     /// Returns the string representation of the line ending (`\n`, `\r\n`, or `\r`).
@@ -167,6 +203,8 @@ impl LineEnding {
 
     /// Converts all line endings in a string to LF (`\n`) for consistent processing.
     ///
+    /// Requires the `alloc` feature.
+    ///
     /// # Example
     ///
     /// ```
@@ -175,11 +213,14 @@ impl LineEnding {
     /// let mixed = "first\r\nsecond\rthird\n";
     /// assert_eq!(LineEnding::normalize(mixed), "first\nsecond\nthird\n");
     /// ```
+    #[cfg(feature = "alloc")]
     pub fn normalize(s: &str) -> String {
         s.replace("\r\n", "\n").replace("\r", "\n")
     }
 
     /// Restores line endings in a string to the specified type.
+    ///
+    /// Requires the `alloc` feature.
     ///
     /// # Example
     ///
@@ -190,12 +231,15 @@ impl LineEnding {
     /// assert_eq!(LineEnding::CRLF.denormalize(normalized), "first\r\nsecond\r\nthird");
     /// assert_eq!(LineEnding::CR.denormalize(normalized), "first\rsecond\rthird");
     /// ```
+    #[cfg(feature = "alloc")]
     pub fn denormalize(&self, s: &str) -> String {
         s.replace("\n", self.as_str())
     }
 
     /// Splits a string into a vector of strings using the auto-detected line ending
     /// parsed from the string.
+    ///
+    /// Requires the `alloc` feature.
     ///
     /// # Example
     ///
@@ -206,6 +250,7 @@ impl LineEnding {
     /// let lines = LineEnding::split(text);
     /// assert_eq!(lines, vec!["line1", "line2", "line3"]);
     /// ```
+    #[cfg(feature = "alloc")]
     pub fn split(s: &str) -> Vec<String> {
         let line_ending = Self::from(s).as_str();
         s.split(line_ending).map(String::from).collect()
@@ -218,6 +263,8 @@ impl LineEnding {
     ///
     /// Unlike [`LineEnding::split`], which detects the line ending type from the input,
     /// this method explicitly uses the line ending type of `self` to split the string.
+    ///
+    /// Requires the `alloc` feature.
     ///
     /// # Example
     ///
@@ -232,11 +279,14 @@ impl LineEnding {
     /// let lines = LineEnding::LF.split_with(text);
     /// assert_eq!(lines, vec!["line1", "line2", "line3"]);
     /// ```
+    #[cfg(feature = "alloc")]
     pub fn split_with(&self, s: &str) -> Vec<String> {
         s.split(self.as_str()).map(String::from).collect()
     }
 
     /// Joins a vector of strings using the specified line ending.
+    ///
+    /// Requires the `alloc` feature.
     ///
     /// # Example
     ///
@@ -247,11 +297,14 @@ impl LineEnding {
     /// assert_eq!(LineEnding::CRLF.join(lines.clone()), "line1\r\nline2\r\nline3");
     /// assert_eq!(LineEnding::LF.join(lines.clone()), "line1\nline2\nline3");
     /// ```
+    #[cfg(feature = "alloc")]
     pub fn join(&self, lines: Vec<String>) -> String {
         lines.join(self.as_str())
     }
 
     /// Applies a specific line ending type to an existing string.
+    ///
+    /// Requires the `alloc` feature.
     ///
     /// # Example
     ///
@@ -262,6 +315,7 @@ impl LineEnding {
     /// assert_eq!(LineEnding::CRLF.apply(mixed_text), "first line\r\nsecond line\r\nthird line\r\n");
     /// assert_eq!(LineEnding::LF.apply(mixed_text), "first line\nsecond line\nthird line\n");
     /// ```
+    #[cfg(feature = "alloc")]
     pub fn apply(&self, s: &str) -> String {
         let normalized = Self::normalize(s);
         normalized.replace("\n", self.as_str())

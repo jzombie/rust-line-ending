@@ -1,19 +1,17 @@
 # Rust Line Endings
 
 [![made-with-rust][rust-logo]][rust-src-page]
+[![no_std][nostd-badge]](#no_std-support)
 [![crates.io][crates-badge]][crates-page]
 [![Documentation][docs-badge]][docs-page]
-[![MIT licensed][license-badge]][license-page]
-
-
-| OS            | Status                                                                               |
-|---------------|--------------------------------------------------------------------------------------|
-| Ubuntu-latest | [![Ubuntu Tests][ubuntu-latest-badge]][ubuntu-latest-workflow]                       |
-| macOS-latest  | [![macOS Tests][macos-latest-badge]][macos-latest-workflow]                          |
-| Windows-latest| [![Windows Tests][windows-latest-badge]][windows-latest-workflow]                    |
+[![MIT/Apache-2.0 licensed][license-badge]][license-page]
+[![Tests][tests-badge]][tests-workflow]
+[![Lint][lint-badge]][lint-workflow]
 
 
 A Rust crate to detect, normalize, and convert line endings across platforms, including support for character streams. Ensures consistent handling of `LF`, `CRLF`, and `CR` line endings in text processing.
+
+Supported on any platform Rust targets, including [`no_std` environments](#no_std-support). CI runs the full test suite on Ubuntu, macOS, and Windows.
 
 ## Install
 
@@ -27,10 +25,18 @@ cargo add line-ending
 
 Line endings can be auto-detected for the current platform.
 
+*`no_std`-compatible: core only, no features required.*
+
 ```rust
 use line_ending::LineEnding;
 
 let detected = LineEnding::from_current_platform();
+
+// The detected value is always a valid line ending.
+assert!(matches!(
+    detected,
+    LineEnding::LF | LineEnding::CRLF | LineEnding::CR
+));
 
 #[cfg(target_os = "windows")]
 assert_eq!(detected, LineEnding::CRLF, "Windows should detect CRLF");
@@ -45,6 +51,8 @@ assert_eq!(detected, LineEnding::LF, "WASM should default to LF");
 ### Split into Multiple Strings
 
 Split a string into a vector of strings using the auto-detected line ending parsed from the string.
+
+*Requires the `alloc` feature (enabled by default via `std`).*
 
 ```rust
 use line_ending::LineEnding;
@@ -63,6 +71,8 @@ assert_eq!(lf, expected);
 ### Join Multiple Strings into a Single String
 
 Join a vector of strings using the specified line ending.
+
+*Requires the `alloc` feature (enabled by default via `std`).*
 
 ```rust
 use line_ending::LineEnding;
@@ -91,6 +101,8 @@ assert_eq!(
 
 Apply a specific line ending type to an existing string.
 
+*Requires the `alloc` feature (enabled by default via `std`).*
+
 ```rust
 use line_ending::LineEnding;
 
@@ -114,6 +126,8 @@ assert_eq!(
 
 Detect the predominant line ending style used in the input string.
 
+*`no_std`-compatible: core only, no features required.*
+
 ```rust
 use line_ending::LineEnding;
 
@@ -130,6 +144,8 @@ assert_eq!(LineEnding::from(lf), LineEnding::LF);
 
 Convert all line endings in a string to `LF` (`\n`) for consistent processing.
 
+*Requires the `alloc` feature (enabled by default via `std`).*
+
 ```rust
 use line_ending::LineEnding;
 
@@ -145,6 +161,8 @@ assert_eq!(LineEnding::normalize(lf), lf);
 ### Denormalize
 
 Restore line endings in a string to the specified type.
+
+*Requires the `alloc` feature (enabled by default via `std`).*
 
 ```rust
 use line_ending::LineEnding;
@@ -164,6 +182,8 @@ assert_eq!(lf_restored, "first\nsecond\nthird");
 
 When a string contains multiple types of line endings (`LF`, `CRLF`, and `CR`), the `LineEnding::from` method will detect the most frequent line ending type and return it as the dominant one. This ensures a consistent approach to mixed-line-ending detection.
 
+*`no_std`-compatible: core only, no features required.*
+
 ```rust
 use line_ending::LineEnding;
 
@@ -181,6 +201,8 @@ The detection algorithm works as follows:
 
 ##### Case 1: One Line Ending Type is Clearly Dominant
 
+*`no_std`-compatible: core only, no features required.*
+
 ```rust
 use line_ending::LineEnding;
 
@@ -192,6 +214,8 @@ assert_eq!(LineEnding::from(mostly_cr), LineEnding::CR); // `CR` is the most com
 ```
 
 ##### Case 2: All Line Endings Appear Equally
+
+*`no_std`-compatible: core only, no features required.*
 
 If `LF`, `CRLF`, and `CR` all appear the same number of times, the function will return `CRLF` as a tie-breaker.
 
@@ -206,6 +230,8 @@ assert_eq!(LineEnding::from(equal_mixed), LineEnding::CRLF); // `CRLF` > `CR` > 
 
 ##### Case 3: Single Line Containing Multiple Line Endings
 
+*`no_std`-compatible: core only, no features required.*
+
 If a single line contains different line endings, the function still chooses the most frequent across the entire string.
 
 ```rust
@@ -216,6 +242,8 @@ assert_eq!(LineEnding::from(mixed_on_one_line), LineEnding::CRLF); // `CRLF` app
 ```
 
 ##### Case 4: Empty Input Defaults to `CRLF`
+
+*`no_std`-compatible: core only, no features required.*
 
 ```rust
 use line_ending::LineEnding;
@@ -229,6 +257,8 @@ assert_eq!(LineEnding::from(empty_text), LineEnding::CRLF); // Defaults to `CRLF
 ##### Counting Mixed Types
 
 Count occurrences of each line ending type in the given string.
+
+*Requires `std` (default features).*
 
 ```rust
 use line_ending::{LineEnding, LineEndingScores};
@@ -253,6 +283,8 @@ assert_eq!(
 
 If you want to forcefully split by a certain type.
 
+*Requires the `alloc` feature (enabled by default via `std`).*
+
 ```rust
 use line_ending::{LineEnding};
 
@@ -269,6 +301,8 @@ When processing text from a stream (for example, when reading from a file), you 
 This crate provides a trait extension (via the `PeekableLineEndingExt` trait) that adds a consume_line_ending() method to a `Peekable<Chars>` iterator. This method automatically detects and consumes the full line break sequence (whether it’s LF, CR, or CRLF) from the stream.
 
 The following example demonstrates how to split a character stream into lines without having to manually handle each line-ending case:
+
+*Requires the `alloc` feature (enabled by default via `std`) for the `Vec`/`String` buffering in this example; the `PeekableLineEndingExt` trait itself is core-only.*
 
 ```rust
 use line_ending::{LineEnding, PeekableLineEndingExt};
@@ -294,9 +328,50 @@ assert_eq!(lines, vec!["line1", "line2", "line3", "line4"]);
 
 _Note: Mixed-type line-ending character streams are automatically handled._
 
+### `no_std` Support
+
+The crate is partitioned into three tiers via feature flags (default is `std`, i.e. everything):
+
+| Tier | Feature flags | API surface |
+|------|---------------|-------------|
+| `core` (no alloc) | `--no-default-features` | `LineEnding` detection (`from`, `as_str`, `as_char`, `from_current_platform`), `PeekableLineEndingExt` |
+| `alloc` | `--no-default-features --features alloc` | Above plus `normalize`, `denormalize`, `split`, `split_with`, `join`, `apply` |
+| `std` (default) | (default) | Above plus `BufReadLineEndingExt`, `LinesStreaming`, `LineEndingScores` / `score_mixed_types` |
+
+### Handling Byte Streams (Chunk-Safe)
+
+When bytes arrive over I/O (files, sockets, pipes), a `\r\n` pair can be split across two reads. A plain `char` iterator cannot stitch across that boundary (each chunk's end looks like EOF), so this crate provides a byte-oriented API built on `BufRead` with an explicit cross-buffer state machine.
+
+`LinesStreaming` yields `(line, terminator)` pairs, where the final unterminated line yields `None`. I/O and UTF-8 errors are yielded as `Err` (like `std::io::Lines`). Unlike the `char`-based API above, a backslash is treated as an ordinary byte — escape sequences are not interpreted on the wire.
+
+*Requires `std` (default features).*
+
+```rust
+use line_ending::{LineEnding, LinesStreaming};
+use std::io::BufReader;
+
+let data = b"line1\r\nline2\nline3\rline4";
+let reader = BufReader::new(&data[..]);
+let lines: Vec<(String, Option<LineEnding>)> = LinesStreaming::new(reader)
+    .collect::<std::io::Result<_>>()
+    .expect("streaming should succeed");
+
+assert_eq!(
+    lines,
+    vec![
+        ("line1".to_string(), Some(LineEnding::CRLF)),
+        ("line2".to_string(), Some(LineEnding::LF)),
+        ("line3".to_string(), Some(LineEnding::CR)),
+        ("line4".to_string(), None),
+    ]
+);
+```
+
 ### Escaped vs. Actual Line Endings
 
 Rust treats `\\n` as a literal sequence rather than an actual newline. This behavior ensures that escaped sequences are not mistakenly interpreted as real line breaks.
+
+*Requires the `alloc` feature (enabled by default via `std`).*
 
 For example:
 
@@ -316,7 +391,9 @@ assert_eq!(result_actual, vec!["First", "Second", "Third"]); // Actual `\n` spli
 
 ## License
 
-Licensed under **MIT**. See [`LICENSE`][license-page] for details.
+Licensed under **MIT OR Apache-2.0**. See [`LICENSE-MIT`](LICENSE-MIT) and [`LICENSE-APACHE`](LICENSE-APACHE) for details.
+
+See [`CHANGELOG.md`](CHANGELOG.md) for release history.
 
 
 
@@ -324,20 +401,19 @@ Licensed under **MIT**. See [`LICENSE`][license-page] for details.
 [rust-src-page]: https://www.rust-lang.org/
 [rust-logo]: https://img.shields.io/badge/Made%20with-Rust-black?&logo=Rust
 
+[nostd-badge]: https://img.shields.io/badge/no__std-supported-blue
+
 [crates-page]: https://crates.io/crates/line-ending
 [crates-badge]: https://img.shields.io/crates/v/line-ending.svg
 
 [docs-page]: https://docs.rs/line-ending
 [docs-badge]: https://docs.rs/line-ending/badge.svg
 
-[license-page]: https://github.com/jzombie/rust-line-ending/blob/main/LICENSE
-[license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[license-page]: https://github.com/jzombie/rust-line-ending/blob/main/LICENSE-MIT
+[license-badge]: https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg
 
-[ubuntu-latest-badge]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml/badge.svg?branch=main&job=Run%20Rust%20Tests%20(OS%20=%20ubuntu-latest)
-[ubuntu-latest-workflow]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml?query=branch%3Amain
+[tests-badge]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml/badge.svg?branch=main
+[tests-workflow]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml?query=branch%3Amain
 
-[macos-latest-badge]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml/badge.svg?branch=main&job=Run%20Rust%20Tests%20(OS%20=%20macos-latest)
-[macos-latest-workflow]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml?query=branch%3Amain
-
-[windows-latest-badge]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml/badge.svg?branch=main&job=Run%20Rust%20Tests%20(OS%20=%20windows-latest)
-[windows-latest-workflow]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml?query=branch%3Amain
+[lint-badge]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-lint.yml/badge.svg?branch=main
+[lint-workflow]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-lint.yml?query=branch%3Amain

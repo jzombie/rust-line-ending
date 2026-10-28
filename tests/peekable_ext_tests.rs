@@ -116,4 +116,95 @@ mod tests {
             ]
         );
     }
+
+    fn drain(s: &str) -> (Vec<String>, Vec<LineEnding>) {
+        let mut it = s.chars().peekable();
+        let mut consumed = Vec::new();
+        let mut current_line = String::new();
+        let mut lines = Vec::new();
+        while it.peek().is_some() {
+            if let Some(le) = it.consume_line_ending() {
+                consumed.push(le);
+                lines.push(current_line);
+                current_line = String::new();
+            } else {
+                current_line.push(it.next().unwrap());
+            }
+        }
+        lines.push(current_line);
+        (lines, consumed)
+    }
+
+    #[test]
+    fn trailing_cr_at_true_eof_is_single_cr() {
+        let (lines, consumed) = drain("abc\r");
+        assert_eq!(consumed, vec![LineEnding::CR]);
+        assert_eq!(lines, vec!["abc", ""]);
+    }
+
+    #[test]
+    fn empty_input_yields_no_break() {
+        let mut it = "".chars().peekable();
+        assert_eq!(it.consume_line_ending(), None);
+        let (lines, consumed) = drain("");
+        assert!(consumed.is_empty());
+        assert_eq!(lines, vec![""]);
+    }
+
+    #[test]
+    fn letters_r_and_n_never_split() {
+        // Literal 'r'/'n' letters (and backslash + letter, which the
+        // char API treats as escaped content) never form breaks;
+        // only 0x0D/0x0A do.
+        let (lines, consumed) = drain("learn\niron\r\nurn\rern\nrun\\ner");
+        assert_eq!(
+            consumed,
+            vec![
+                LineEnding::LF,
+                LineEnding::CRLF,
+                LineEnding::CR,
+                LineEnding::LF
+            ]
+        );
+        assert_eq!(lines, vec!["learn", "iron", "urn", "ern", "run\\ner"]);
+    }
+
+    #[test]
+    fn lone_breaks_are_detected() {
+        assert_eq!(drain("\n").1, vec![LineEnding::LF]);
+        assert_eq!(drain("\r").1, vec![LineEnding::CR]);
+        assert_eq!(drain("\r\n").1, vec![LineEnding::CRLF]);
+    }
+
+    #[test]
+    fn consecutive_breaks_yield_empty_lines() {
+        let (lines, consumed) = drain("a\n\nb\r\n\r\nc");
+        assert_eq!(
+            consumed,
+            vec![
+                LineEnding::LF,
+                LineEnding::LF,
+                LineEnding::CRLF,
+                LineEnding::CRLF
+            ]
+        );
+        assert_eq!(lines, vec!["a", "", "b", "", "c"]);
+    }
+
+    #[test]
+    fn split_iterators_do_not_stitch_crlf() {
+        // Negative control (SEV-1): `None` is EOF, not end-of-chunk. Two
+        // separate iterators MUST yield CR then LF — cross-`None` stitching
+        // is out of scope by `Iterator` contract.
+        let mut first = "abc\r".chars().peekable();
+        let mut second = "\nxyz".chars().peekable();
+        // A leading non-break yields `None` without consuming.
+        assert_eq!(first.consume_line_ending(), None);
+        // Drain content, then observe the trailing break.
+        assert_eq!(first.next(), Some('a'));
+        assert_eq!(first.next(), Some('b'));
+        assert_eq!(first.next(), Some('c'));
+        assert_eq!(first.consume_line_ending(), Some(LineEnding::CR));
+        assert_eq!(second.consume_line_ending(), Some(LineEnding::LF));
+    }
 }
