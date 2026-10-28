@@ -10,8 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Byte-oriented, chunk-safe streaming API over `std::io::BufRead`: `BufReadLineEndingExt::consume_line_ending` (cross-buffer CRLF state machine with `ErrorKind::Interrupted` retries) and the `LinesStreaming` iterator yielding `io::Result<(String, Option<LineEnding>)>`.
-- `no_std` partitioning via feature flags (`std` default, `alloc`, pure `core`): `BufRead` API and `LineEndingScores`/`score_mixed_types` are `std`-gated; string allocate-y APIs are `alloc`-gated; detection enum and `PeekableLineEndingExt` are core-only.
+- `no_std` partitioning via feature flags (`std` default, `alloc`, pure `core`): `BufRead` API and `LineEndingScores`/`score_mixed_types` are `std`-gated; string-allocating APIs are `alloc`-gated; detection enum and `PeekableLineEndingExt` are core-only.
 - README section "Handling Byte Streams (Chunk-Safe)" with a runnable example.
+- README: every example annotated with its feature tier (`no_std`/`alloc`/`std`), machine-checked by CI; `no_std` badge; platform-support note.
 - `CHANGELOG.md` (this file; backfilled previous entries).
 
 ### Changed
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README header: removed the OS test-status table in favor of single `Tests` and `Lint` workflow badges.
 - `crates.io` metadata: added `no-std`, `text-processing`, `parsing` categories.
 - Dual-licensed under **MIT OR Apache-2.0** (renamed `LICENSE` → `LICENSE-MIT`, added `LICENSE-APACHE`; `Cargo.toml` SPDX expression updated).
+- CI hardening: absolute zero-dependency gate (`cargo tree` assertion), README tier-annotation check, feature-tier test matrix (`std`/`alloc`/`core`), `actions/checkout@v7`, toolchain `components: rustfmt, clippy`, `cargo-udeps`/`cargo-sort`/`cargo-deny`/`cargo-audit` checks.
 
 ### Removed
 
