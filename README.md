@@ -32,6 +32,12 @@ use line_ending::LineEnding;
 
 let detected = LineEnding::from_current_platform();
 
+// The detected value is always a valid line ending.
+assert!(matches!(
+    detected,
+    LineEnding::LF | LineEnding::CRLF | LineEnding::CR
+));
+
 #[cfg(target_os = "windows")]
 assert_eq!(detected, LineEnding::CRLF, "Windows should detect CRLF");
 

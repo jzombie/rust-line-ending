@@ -68,6 +68,10 @@ jobs:
       - name: Test core tier
         run: cargo test --workspace --no-default-features --test peekable_ext_tests
 
+      # Every README example must compile and pass under its annotated tier.
+      - name: Check README tier annotations
+        run: python3 .github/scripts/check-readme-tiers.py
+
   test:
     name: test
     runs-on: ubuntu-latest
