@@ -11,6 +11,8 @@
 
 A Rust crate to detect, normalize, and convert line endings across platforms, including support for character streams. Ensures consistent handling of `LF`, `CRLF`, and `CR` line endings in text processing.
 
+Supported on any platform Rust targets, including [`no_std` environments](#no_std-support). CI runs the full test suite on Ubuntu, macOS, and Windows.
+
 ## Install
 
 ```sh
