@@ -6,6 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 # Ensure only one run per branch/PR at a time. If new commits are pushed,
 # older jobs will be automatically canceled.
 concurrency:
