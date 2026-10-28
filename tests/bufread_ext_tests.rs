@@ -307,4 +307,74 @@ mod tests {
         // a terminator; counts must match the scorer exactly.
         assert_eq!(counts, expected);
     }
+
+    /// Differential test: `LinesStreaming` must agree with a trivial
+    /// reference splitter on randomized inputs, at every buffer capacity
+    /// from 1 to 8 bytes. Exercises split CRLF, chunk-edge `\r`, and
+    /// multi-byte UTF-8 content straddling buffer boundaries (bytes
+    /// `b'\r'`/`b'\n'` never appear inside multi-byte sequences, so
+    /// content must pass through byte-identical).
+    ///
+    /// Deterministic: fixed-seed LCG, no dependencies.
+    #[test]
+    fn streaming_matches_reference_on_random_inputs() {
+        fn reference(text: &str) -> Vec<(String, Option<LineEnding>)> {
+            let mut out = Vec::new();
+            let mut cur = String::new();
+            let mut chars = text.chars().peekable();
+            while let Some(c) = chars.next() {
+                match c {
+                    '\r' => {
+                        if chars.peek() == Some(&'\n') {
+                            chars.next();
+                            out.push((std::mem::take(&mut cur), Some(LineEnding::CRLF)));
+                        } else {
+                            out.push((std::mem::take(&mut cur), Some(LineEnding::CR)));
+                        }
+                    }
+                    '\n' => out.push((std::mem::take(&mut cur), Some(LineEnding::LF))),
+                    _ => cur.push(c),
+                }
+            }
+            out.push((cur, None));
+            // Reference emits a trailing ("", None) for inputs ending in a
+            // break; drop it to match iterator convention (done at EOF).
+            if out.len() >= 2 {
+                let n = out.len();
+                if out[n - 2].1.is_some() && out[n - 1].0.is_empty() && out[n - 1].1.is_none() {
+                    out.pop();
+                }
+            }
+            out
+        }
+
+        // Alphabet includes lone/trailing breaks and 2-byte UTF-8.
+        let pieces = ["a", "\r", "\n", "\r\n", "é", "\r\r", "\n\n", "x"];
+        let mut state: u64 = 0x1234_5678_9ABC_DEF0;
+        let mut next = move || {
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            (state >> 33) as usize
+        };
+
+        for round in 0..500 {
+            let mut text = String::new();
+            let n = 1 + next() % 12;
+            for _ in 0..n {
+                text.push_str(pieces[next() % pieces.len()]);
+            }
+            let expected = reference(&text);
+            for capacity in 1..=8usize {
+                let reader = BufReader::with_capacity(capacity, text.as_bytes());
+                let got: Vec<(String, Option<LineEnding>)> = LinesStreaming::new(reader)
+                    .collect::<io::Result<_>>()
+                    .unwrap_or_else(|e| panic!("round {round} cap {capacity} err: {e}"));
+                assert_eq!(
+                    got, expected,
+                    "round {round} capacity {capacity} input {text:?}"
+                );
+            }
+        }
+    }
 }
