@@ -152,6 +152,24 @@ mod tests {
     }
 
     #[test]
+    fn letters_r_and_n_never_split() {
+        // Literal 'r'/'n' letters (and backslash + letter, which the
+        // char API treats as escaped content) never form breaks;
+        // only 0x0D/0x0A do.
+        let (lines, consumed) = drain("learn\niron\r\nurn\rern\nrun\\ner");
+        assert_eq!(
+            consumed,
+            vec![
+                LineEnding::LF,
+                LineEnding::CRLF,
+                LineEnding::CR,
+                LineEnding::LF
+            ]
+        );
+        assert_eq!(lines, vec!["learn", "iron", "urn", "ern", "run\\ner"]);
+    }
+
+    #[test]
     fn lone_breaks_are_detected() {
         assert_eq!(drain("\n").1, vec![LineEnding::LF]);
         assert_eq!(drain("\r").1, vec![LineEnding::CR]);

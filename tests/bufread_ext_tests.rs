@@ -18,6 +18,23 @@ mod tests {
     }
 
     #[test]
+    fn letters_r_and_n_never_split() {
+        // Words dense in literal 'r'/'n' must split only on actual
+        // 0x0D/0x0A breaks; backslash is ordinary content on the wire.
+        let reader = BufReader::new(b"learn\niron\r\nurn\rern\nrun\\ner" as &[u8]);
+        assert_eq!(
+            unwrap_all(collect_all(reader)),
+            vec![
+                ("learn".to_string(), Some(LineEnding::LF)),
+                ("iron".to_string(), Some(LineEnding::CRLF)),
+                ("urn".to_string(), Some(LineEnding::CR)),
+                ("ern".to_string(), Some(LineEnding::LF)),
+                ("run\\ner".to_string(), None),
+            ]
+        );
+    }
+
+    #[test]
     fn streams_mixed_endings() {
         let reader = BufReader::new(b"line1\r\nline2\nline3\rline4" as &[u8]);
         assert_eq!(
@@ -348,8 +365,10 @@ mod tests {
             out
         }
 
-        // Alphabet includes lone/trailing breaks and 2-byte UTF-8.
-        let pieces = ["a", "\r", "\n", "\r\n", "é", "\r\r", "\n\n", "x"];
+        // Alphabet includes lone/trailing breaks, a literal backslash
+        // (ordinary content on the wire; escape handling is char-API-only),
+        // and 2-byte UTF-8.
+        let pieces = ["a", "\r", "\n", "\r\n", "é", "\r\r", "\n\n", "x", "\\"];
         let mut state: u64 = 0x1234_5678_9ABC_DEF0;
         let mut next = move || {
             state = state
