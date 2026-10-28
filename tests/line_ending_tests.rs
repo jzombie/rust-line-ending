@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use line_ending::{LineEnding, LineEndingScores};
+    use line_ending::LineEnding;
+    #[cfg(feature = "std")]
+    use line_ending::LineEndingScores;
 
     fn get_readme_contents() -> String {
         use std::fs::File;
@@ -135,6 +137,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn handles_mixed_line_endings() {
         // Mixed with some CRLF and CR, but LF is dominant

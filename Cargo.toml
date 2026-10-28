@@ -1,11 +1,14 @@
 [package]
 name = "line-ending"
-version = "1.5.1"
+version = "1.6.0"
 description = "Detect, normalize, and convert line endings across platforms, including support for character streams. Ensures consistent handling of LF, CRLF, and CR line endings in text processing."
 authors = ["Jeremy Harris <jeremy.harris@zenosmosis.com>"]
 edition = "2021"
 repository = "https://github.com/jzombie/rust-line-ending"
-license = "MIT"
+license = "MIT OR Apache-2.0"
+categories = ["no-std", "text-processing", "parsing"]
 
-[dev-dependencies]
-doc-comment = "0.3.3"
+[features]
+default = ["std"]
+std = ["alloc"]
+alloc = []

@@ -4,22 +4,80 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+  workflow_dispatch:
+
+# Ensure only one run per branch/PR at a time. If new commits are pushed,
+# older jobs will be automatically canceled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    name: Run Rust Tests (OS = ${{ matrix.os }})
+  test_matrix:
+    name: test (OS = ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Run tests
-        run: cargo test --verbose
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: test-all-features
+
+      - name: Run tests (all features)
+        run: cargo test --workspace --all-features
+
+  test_nostd:
+    name: test (no-std tiers)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: test-nostd
+
+      # Pure core tier: no alloc, no std. Lib-only; test crates need alloc.
+      - name: Check pure core tier
+        run: cargo check --workspace --no-default-features --lib
+
+      # Alloc tier: full test suite minus doctests (README doctests use std APIs).
+      - name: Test alloc tier (no doctests)
+        run: cargo test --workspace --no-default-features --features alloc --lib --tests
+
+      # Core tier: char-stream tests exercise only core APIs.
+      - name: Test core tier
+        run: cargo test --workspace --no-default-features --test peekable_ext_tests
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    needs: [test_matrix, test_nostd]
+    if: ${{ always() }}
+    steps:
+      - name: Evaluate matrix results
+        run: |
+          result_matrix="${{ needs.test_matrix.result }}"
+          result_nostd="${{ needs.test_nostd.result }}"
+          echo "Matrix job concluded with: ${result_matrix}"
+          echo "no-std job concluded with: ${result_nostd}"
+          if [ "${result_matrix}" != "success" ] || [ "${result_nostd}" != "success" ]; then
+            exit 1
+          fi
+          echo "All platform and feature-tier combinations succeeded."

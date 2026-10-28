@@ -3,14 +3,9 @@
 [![made-with-rust][rust-logo]][rust-src-page]
 [![crates.io][crates-badge]][crates-page]
 [![Documentation][docs-badge]][docs-page]
-[![MIT licensed][license-badge]][license-page]
-
-
-| OS            | Status                                                                               |
-|---------------|--------------------------------------------------------------------------------------|
-| Ubuntu-latest | [![Ubuntu Tests][ubuntu-latest-badge]][ubuntu-latest-workflow]                       |
-| macOS-latest  | [![macOS Tests][macos-latest-badge]][macos-latest-workflow]                          |
-| Windows-latest| [![Windows Tests][windows-latest-badge]][windows-latest-workflow]                    |
+[![MIT/Apache-2.0 licensed][license-badge]][license-page]
+[![Tests][tests-badge]][tests-workflow]
+[![Lint][lint-badge]][lint-workflow]
 
 
 A Rust crate to detect, normalize, and convert line endings across platforms, including support for character streams. Ensures consistent handling of `LF`, `CRLF`, and `CR` line endings in text processing.
@@ -294,6 +289,43 @@ assert_eq!(lines, vec!["line1", "line2", "line3", "line4"]);
 
 _Note: Mixed-type line-ending character streams are automatically handled._
 
+### `no_std` Support
+
+The crate is partitioned into three tiers via feature flags (default is `std`, i.e. everything):
+
+| Tier | Feature flags | API surface |
+|------|---------------|-------------|
+| `core` (no alloc) | `--no-default-features` | `LineEnding` detection (`from`, `as_str`, `as_char`, `from_current_platform`), `PeekableLineEndingExt` |
+| `alloc` | `--no-default-features --features alloc` | Above plus `normalize`, `denormalize`, `split`, `split_with`, `join`, `apply` |
+| `std` (default) | (default) | Above plus `BufReadLineEndingExt`, `LinesStreaming`, `LineEndingScores` / `score_mixed_types` |
+
+### Handling Byte Streams (Chunk-Safe)
+
+When bytes arrive over I/O (files, sockets, pipes), a `\r\n` pair can be split across two reads. A plain `char` iterator cannot stitch across that boundary (each chunk's end looks like EOF), so this crate provides a byte-oriented API built on `BufRead` with an explicit cross-buffer state machine.
+
+`LinesStreaming` yields `(line, terminator)` pairs, where the final unterminated line yields `None`. I/O and UTF-8 errors are yielded as `Err` (like `std::io::Lines`). Unlike the `char`-based API above, a backslash is treated as an ordinary byte — escape sequences are not interpreted on the wire.
+
+```rust
+use line_ending::{LineEnding, LinesStreaming};
+use std::io::BufReader;
+
+let data = b"line1\r\nline2\nline3\rline4";
+let reader = BufReader::new(&data[..]);
+let lines: Vec<(String, Option<LineEnding>)> = LinesStreaming::new(reader)
+    .collect::<std::io::Result<_>>()
+    .expect("streaming should succeed");
+
+assert_eq!(
+    lines,
+    vec![
+        ("line1".to_string(), Some(LineEnding::CRLF)),
+        ("line2".to_string(), Some(LineEnding::LF)),
+        ("line3".to_string(), Some(LineEnding::CR)),
+        ("line4".to_string(), None),
+    ]
+);
+```
+
 ### Escaped vs. Actual Line Endings
 
 Rust treats `\\n` as a literal sequence rather than an actual newline. This behavior ensures that escaped sequences are not mistakenly interpreted as real line breaks.
@@ -316,7 +348,9 @@ assert_eq!(result_actual, vec!["First", "Second", "Third"]); // Actual `\n` spli
 
 ## License
 
-Licensed under **MIT**. See [`LICENSE`][license-page] for details.
+Licensed under **MIT OR Apache-2.0**. See [`LICENSE-MIT`](LICENSE-MIT) and [`LICENSE-APACHE`](LICENSE-APACHE) for details.
+
+See [`CHANGELOG.md`](CHANGELOG.md) for release history.
 
 
 
@@ -330,14 +364,11 @@ Licensed under **MIT**. See [`LICENSE`][license-page] for details.
 [docs-page]: https://docs.rs/line-ending
 [docs-badge]: https://docs.rs/line-ending/badge.svg
 
-[license-page]: https://github.com/jzombie/rust-line-ending/blob/main/LICENSE
-[license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[license-page]: https://github.com/jzombie/rust-line-ending/blob/main/LICENSE-MIT
+[license-badge]: https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg
 
-[ubuntu-latest-badge]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml/badge.svg?branch=main&job=Run%20Rust%20Tests%20(OS%20=%20ubuntu-latest)
-[ubuntu-latest-workflow]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml?query=branch%3Amain
+[tests-badge]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml/badge.svg?branch=main
+[tests-workflow]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml?query=branch%3Amain
 
-[macos-latest-badge]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml/badge.svg?branch=main&job=Run%20Rust%20Tests%20(OS%20=%20macos-latest)
-[macos-latest-workflow]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml?query=branch%3Amain
-
-[windows-latest-badge]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml/badge.svg?branch=main&job=Run%20Rust%20Tests%20(OS%20=%20windows-latest)
-[windows-latest-workflow]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-tests.yml?query=branch%3Amain
+[lint-badge]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-lint.yml/badge.svg?branch=main
+[lint-workflow]: https://github.com/jzombie/rust-line-ending/actions/workflows/rust-lint.yml?query=branch%3Amain

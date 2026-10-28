@@ -1,5 +1,5 @@
 use crate::LineEnding;
-use std::iter::Peekable;
+use core::iter::Peekable;
 
 /// A trait to extend `Peekable<char>` with a method for consuming line endings.
 pub trait PeekableLineEndingExt {
