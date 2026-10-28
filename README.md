@@ -201,6 +201,8 @@ The detection algorithm works as follows:
 
 ##### Case 1: One Line Ending Type is Clearly Dominant
 
+*`no_std`-compatible: core only, no features required.*
+
 ```rust
 use line_ending::LineEnding;
 
@@ -212,6 +214,8 @@ assert_eq!(LineEnding::from(mostly_cr), LineEnding::CR); // `CR` is the most com
 ```
 
 ##### Case 2: All Line Endings Appear Equally
+
+*`no_std`-compatible: core only, no features required.*
 
 If `LF`, `CRLF`, and `CR` all appear the same number of times, the function will return `CRLF` as a tie-breaker.
 
@@ -226,6 +230,8 @@ assert_eq!(LineEnding::from(equal_mixed), LineEnding::CRLF); // `CRLF` > `CR` > 
 
 ##### Case 3: Single Line Containing Multiple Line Endings
 
+*`no_std`-compatible: core only, no features required.*
+
 If a single line contains different line endings, the function still chooses the most frequent across the entire string.
 
 ```rust
@@ -236,6 +242,8 @@ assert_eq!(LineEnding::from(mixed_on_one_line), LineEnding::CRLF); // `CRLF` app
 ```
 
 ##### Case 4: Empty Input Defaults to `CRLF`
+
+*`no_std`-compatible: core only, no features required.*
 
 ```rust
 use line_ending::LineEnding;

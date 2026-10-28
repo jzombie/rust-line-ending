@@ -4,10 +4,22 @@ under its annotated feature set, and by compiling it under a
 strict tier prelude.
 
 Convention enforced on README.md:
-- Every ```rust block must be preceded (nearest tier note above it) by one of:
+- Every ```rust block must carry its OWN tier note directly above it
+  (exactly one of the three strings below). A note applies to the
+  single block that follows it and is then consumed: a reworded note
+  matches nothing, so the next block has no tier and the script exits
+  non-zero naming the offending block. There is no inheritance and
+  no silent skipping.
     * "`no_std`-compatible: core only"            -> core tier
     * "Requires the `alloc` feature"              -> alloc tier
     * "Requires `std`"                            -> std tier
+  Fences with suffixes are honored the way rustdoc honors them:
+    * ```rust,ignore blocks are skipped entirely (never compiled).
+    * ```rust,no_run blocks are compile-checked in src/lib.rs but
+      never executed (no #[test] emitted).
+  Every fence — including suffixed ones — must still carry its own
+  tier note, so flipping a block to runnable later cannot silently
+  land it in the wrong tier.
 - Each tier's blocks go into a scratch crate depending on line-ending
   with the matching features, in two forms:
     * tests/readme.rs — blocks as #[test] fns, run with `cargo test`.
@@ -39,26 +51,41 @@ STD_MARK = "Requires `std`"
 
 
 def extract_blocks(readme: Path):
-    """Return [(tier, body)] for every ```rust block in document order."""
+    """Return [(tier, body, directives)] for every ```rust block, in order.
+
+    directives is the fence suffix set, e.g. {"no_run"} for
+    ```rust,no_run (empty for plain ```rust).
+
+    Strict consume-on-use: a tier note arms exactly one following block.
+    Anything else (missing note, reworded note, unclosed fence) is a
+    hard error naming the block.
+    """
     blocks = []
     tier = None
     in_fence = False
+    fence_first_line = 0
+    directives: set[str] = set()
     buf = []
-    for line in readme.read_text().splitlines():
+    for lineno, line in enumerate(readme.read_text().splitlines(), start=1):
         stripped = line.strip()
-        if stripped == "```rust":
+        if stripped == "```rust" or stripped.startswith("```rust,"):
             if in_fence:
-                sys.exit("error: nested ```rust fence")
+                sys.exit(f"error: nested ```rust fence at line {lineno}")
+            if tier is None:
+                sys.exit(
+                    f"error: ```rust block at line {lineno} has no tier "
+                    "annotation above it"
+                )
             in_fence = True
+            fence_first_line = lineno
+            directives = (
+                set(stripped[len("```rust") + 1 :].split(",")) if "," in stripped else set()
+            )
             buf = []
         elif stripped == "```" and in_fence:
             in_fence = False
-            if tier is None:
-                sys.exit(
-                    "error: ```rust block has no tier annotation above it:\n"
-                    + "\n".join(buf[:5])
-                )
-            blocks.append((tier, "\n".join(buf)))
+            blocks.append((tier, "\n".join(buf), directives))
+            tier = None  # consumed: each block needs its own note
         elif in_fence:
             buf.append(line)
         else:
@@ -69,11 +96,11 @@ def extract_blocks(readme: Path):
             elif STD_MARK in line:
                 tier = "std"
     if in_fence:
-        sys.exit("error: unclosed ```rust fence")
+        sys.exit(f"error: unclosed ```rust fence opened at line {fence_first_line}")
     return blocks
 
 
-def write_crate(parent: Path, tier: str, bodies: list[str]):
+def write_crate(parent: Path, tier: str, bodies: list[tuple[str, set[str]]]):
     crate = parent / f"readme-tier-{tier}"
     (crate / "src").mkdir(parents=True)
     (crate / "tests").mkdir(parents=True)
@@ -103,8 +130,12 @@ def write_crate(parent: Path, tier: str, bodies: list[str]):
     else:
         lib_prelude = ""
     lib = [lib_prelude]
-    for i, body in enumerate(bodies):
-        lib.append(f"pub fn readme_block_{i}() {{\n{body}\n}}\n")
+    lib_n = 0
+    for body, directives in bodies:
+        if "ignore" in directives:
+            continue  # rustdoc contract: never compiled
+        lib.append(f"pub fn readme_block_{lib_n}() {{\n{body}\n}}\n")
+        lib_n += 1
     (crate / "src" / "lib.rs").write_text("\n".join(lib))
     # Execution phase (tests/readme.rs): harness links std, so this
     # proves API availability and assertion correctness, not purity.
@@ -114,17 +145,22 @@ def write_crate(parent: Path, tier: str, bodies: list[str]):
     else:
         test_prelude = ""
     tests = [test_prelude]
-    for i, body in enumerate(bodies):
-        tests.append(f"#[test]\nfn readme_block_{i}() {{\n{body}\n}}\n")
+    test_n = 0
+    for body, directives in bodies:
+        if "ignore" in directives or "no_run" in directives:
+            continue  # rustdoc contract: ignore = never compiled,
+            # no_run = compiled (lib phase) but never executed
+        tests.append(f"#[test]\nfn readme_block_{test_n}() {{\n{body}\n}}\n")
+        test_n += 1
     (crate / "tests" / "readme.rs").write_text("\n".join(tests))
-    return crate
+    return crate, len(bodies), lib_n, test_n
 
 
 def main() -> int:
     blocks = extract_blocks(README)
-    by_tier: dict[str, list[str]] = {"core": [], "alloc": [], "std": []}
-    for tier, body in blocks:
-        by_tier[tier].append(body)
+    by_tier: dict[str, list[tuple[str, set[str]]]] = {"core": [], "alloc": [], "std": []}
+    for tier, body, directives in blocks:
+        by_tier[tier].append((body, directives))
     print(f"README rust blocks: {len(blocks)} " + str({k: len(v) for k, v in by_tier.items()}))
 
     tmp = Path(tempfile.mkdtemp(prefix="readme-tiers-"))
@@ -133,8 +169,15 @@ def main() -> int:
             if not bodies:
                 print(f"[{tier}] no blocks, skipping")
                 continue
-            crate = write_crate(tmp, tier, bodies)
-            print(f"[{tier}] strict check ({len(bodies)} blocks) ...", flush=True)
+            crate, total, lib_n, test_n = write_crate(tmp, tier, bodies)
+            skipped = total - lib_n
+            norun = lib_n - test_n
+            print(
+                f"[{tier}] strict check ({lib_n} blocks"
+                + (f", {skipped} ignored" if skipped else "")
+                + ") ...",
+                flush=True,
+            )
             r = subprocess.run(
                 ["cargo", "check", "--quiet"], cwd=crate, capture_output=True, text=True
             )
@@ -142,7 +185,12 @@ def main() -> int:
                 print(f"[{tier}] STRICT CHECK FAILED:\n{r.stdout}\n{r.stderr}")
                 return 1
             print(f"[{tier}] strict check ok")
-            print(f"[{tier}] testing {len(bodies)} blocks ...", flush=True)
+            print(
+                f"[{tier}] testing {test_n} blocks"
+                + (f" ({norun} no_run, compile only)" if norun else "")
+                + " ...",
+                flush=True,
+            )
             r = subprocess.run(
                 ["cargo", "test", "--quiet"], cwd=crate, capture_output=True, text=True
             )
